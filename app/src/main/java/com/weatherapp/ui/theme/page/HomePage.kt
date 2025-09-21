@@ -42,23 +42,21 @@ fun HomePage(
 
     val weatherData by vmWeather.weatherData.collectAsStateWithLifecycle()
     val gpsPrefs by vmSettings.gpsSettings.collectAsStateWithLifecycle(false)
-    var userLocation by remember {
-        mutableStateOf("")
-    }
+//    var userLocation by remember {
+//        mutableStateOf("Jakarta")
+//    }
 
     if (gpsPrefs) {
         val context = LocalContext.current
         val fusedLocationClient = LocationServices.getFusedLocationProviderClient(context)
         fusedLocationClient.lastLocation.addOnSuccessListener {
             if (it != null) {
-                val latitude = it.latitude
-                val longitude = it.longitude
-                userLocation = "$latitude,$longitude"
-                vmWeather.getWeatherData(userLocation)
+                val userLocation = "${it.latitude},${it.longitude}"
+                vmWeather.getWeatherDataAlways(userLocation)
             }
         }
     } else {
-        vmWeather.getWeatherData("Jakarta")
+        vmWeather.getWeatherDataAlways("Jakarta")
     }
 
     val scrollState = rememberScrollState()
@@ -70,12 +68,12 @@ fun HomePage(
             .padding(horizontal = 15.dp, vertical = 0.dp)
     ) {
         if (weatherData != null) {
-            Spacer(modifier = Modifier.height(50.dp))
+            Spacer(modifier = Modifier.height(25.dp))
             Text(
                 text = "${weatherData!!.current.temp_c}°",
                 fontSize = 125.sp,
             )
-            Spacer(modifier = Modifier.height(50.dp))
+            Spacer(modifier = Modifier.height(25.dp))
             Spacer(modifier = Modifier.height(10.dp))
             Column(
                 modifier = Modifier
@@ -136,7 +134,6 @@ fun HomePage(
                 Text(text = "${weatherData!!.current.wind_degree}°")
                 Spacer(modifier = Modifier.height(5.dp))
                 Text(text = weatherData!!.current.wind_dir)
-                Text(text = userLocation)
             }
         }
     }

@@ -1,0 +1,35 @@
+package com.weatherapp.roomdata.database
+
+import android.content.Context
+import androidx.room.Database
+import androidx.room.Room
+import androidx.room.RoomDatabase
+import com.weatherapp.roomdata.dao.LocationDao
+import com.weatherapp.roomdata.dataclass.Location
+
+@Database(
+    entities = [Location::class],
+    version = 1,
+    exportSchema = false
+)
+abstract class LocationDatabase: RoomDatabase() {
+
+    abstract fun locationDao(): LocationDao
+
+    companion object {
+        @Volatile
+        private var INSTANCE: LocationDatabase? = null
+
+        fun getDatabase(context: Context): LocationDatabase {
+            return INSTANCE ?: synchronized(this) {
+                val instance = Room.databaseBuilder(
+                    context.applicationContext,
+                    LocationDatabase::class.java,
+                    "weatherapp_database"
+                ).build()
+                INSTANCE = instance
+                instance
+            }
+        }
+    }
+}

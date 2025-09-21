@@ -46,7 +46,7 @@ class ViewModelWeather: ViewModel() {
         viewModelScope.launch {
             while (true) {
                 getWeatherData(location)
-                delay(5000L)
+                delay(2500L)
             }
         }
     }
