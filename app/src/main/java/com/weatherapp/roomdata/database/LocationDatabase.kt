@@ -10,7 +10,6 @@ import com.weatherapp.roomdata.dataclass.Location
 @Database(
     entities = [Location::class],
     version = 1,
-    exportSchema = false
 )
 abstract class LocationDatabase: RoomDatabase() {
 
@@ -25,7 +24,7 @@ abstract class LocationDatabase: RoomDatabase() {
                 val instance = Room.databaseBuilder(
                     context.applicationContext,
                     LocationDatabase::class.java,
-                    "weatherapp_database"
+                    "weather_database"
                 ).build()
                 INSTANCE = instance
                 instance

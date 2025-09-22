@@ -5,6 +5,7 @@ import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Update
 import androidx.room.Upsert
 import com.weatherapp.roomdata.dataclass.Location
 import kotlinx.coroutines.flow.Flow
@@ -12,8 +13,11 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface LocationDao {
 
-    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertLocation(location: Location)
+
+    @Update
+    suspend fun updateLocation(location: Location)
 
     @Delete
     suspend fun deleteLocation(location: Location)

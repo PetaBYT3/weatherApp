@@ -1,7 +1,6 @@
-package com.weatherapp
+package com.weatherapp.activity
 
 import android.Manifest
-import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -18,38 +17,33 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Delete
-import androidx.compose.material.icons.rounded.Edit
-import androidx.compose.material3.BottomSheetScaffold
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Snackbar
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.room.Room
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
-import com.weatherapp.dialog.LocationInputDialog
-import com.weatherapp.roomdata.database.LocationDatabase
+import com.weatherapp.dialog.BottomSheetTextField
 import com.weatherapp.roomdata.dataclass.Location
-import com.weatherapp.roomdata.event.LocationEvent
-import com.weatherapp.roomdata.state.LocationState
 import com.weatherapp.ui.theme.WeatherAppTheme
 import com.weatherapp.viewmodel.LocationViewModel
 import com.weatherapp.viewmodel.ViewModelSettings
@@ -70,8 +64,16 @@ class EditActivity : ComponentActivity() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun MainScreen() {
+private fun MainScreen(
+    vmSettings: ViewModelSettings = viewModel()
+) {
     val context = LocalContext.current
+    val sheetState = rememberModalBottomSheetState()
+    var isSheetOpen by rememberSaveable {
+        mutableStateOf(false)
+    }
+
+    BottomSheetTextField(isSheetOpen)
     Scaffold(
         modifier = Modifier
             .fillMaxSize(),
@@ -93,6 +95,11 @@ private fun MainScreen() {
                 actions = {
                     IconButton(
                         onClick = {
+                            val dummyLocation = Location(
+                                locationName = "Serang"
+                            )
+                            vmSettings.insertLocation(dummyLocation)
+                            isSheetOpen = true
                         }
                     ) {
                         Icon(
@@ -111,12 +118,9 @@ private fun MainScreen() {
 @Composable
 private fun ContentScreen(
     modifier: Modifier = Modifier,
-    vmSettings: ViewModelSettings = viewModel(),
-    vmLocation: LocationViewModel = viewModel()
+    vmSettings: ViewModelSettings = viewModel()
 ) {
-    val locationList by vmLocation.allLocation.collectAsState(emptyList())
-    val locationDummy = Location(locationName = "Serang")
-    vmLocation.addLocation(locationDummy)
+    val locationList by vmSettings.allLocation.collectAsState(emptyList())
 
     val gpsPrefs by vmSettings.gpsSettings.collectAsStateWithLifecycle(false)
     val locationPermissionState = rememberPermissionState(
@@ -158,23 +162,24 @@ private fun ContentScreen(
         ) {
             items(locationList) { location->
                 Row(
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 0.dp, vertical = 10.dp)
                 ) {
                     Column(
                         modifier = Modifier.weight(1f)
                     ) {
                         Text(text = location.locationName)
+                        Text(text = location.uId.toString())
                     }
-                }
-                IconButton(
-                    onClick = {
-
+                    IconButton(
+                        onClick = {
+                            vmSettings.deleteLocation(location)
+                        }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.Delete,
+                            contentDescription = "Delete Location"
+                        )
                     }
-                ) {
-                    Icon(
-                        imageVector = Icons.Rounded.Delete,
-                        contentDescription = "Delete Location"
-                    )
                 }
             }
         }

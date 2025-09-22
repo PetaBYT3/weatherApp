@@ -1,4 +1,4 @@
-package com.weatherapp.ui.theme.page
+package com.weatherapp.page
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column

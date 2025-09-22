@@ -17,28 +17,23 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
-import com.weatherapp.roomdata.event.LocationEvent
-import com.weatherapp.roomdata.state.LocationState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LocationInputDialog(
-    state: LocationState,
-    onEvent: (LocationEvent) -> Unit,
     modifier: Modifier = Modifier
 ) {
     AlertDialog(
         modifier = Modifier,
         onDismissRequest = {
-            onEvent(LocationEvent.HideDialog)
         },
         title = { Text(text = "Add New Location") },
         text = {
             Column {
                 TextField(
-                    value = state.locationName,
+                    value = "",
                     onValueChange = {
-                        onEvent(LocationEvent.SetLocationName(it))
+
                     },
                     placeholder = {
                         Text(text = "City Name")
@@ -50,7 +45,7 @@ fun LocationInputDialog(
             Box(modifier = Modifier.fillMaxWidth()) {
                 Button(
                     onClick = {
-                        onEvent(LocationEvent.SaveLocation)
+
                     }
                 ) {
                     Text(text = "Save City")

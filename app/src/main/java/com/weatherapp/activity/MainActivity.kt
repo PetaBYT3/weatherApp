@@ -1,4 +1,4 @@
-package com.weatherapp
+package com.weatherapp.activity
 
 import android.content.Intent
 import android.os.Bundle
@@ -26,17 +26,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.weatherapp.dataclass.NavigationItem
 import com.weatherapp.ui.theme.WeatherAppTheme
-import com.weatherapp.ui.theme.page.HomePage
-import com.weatherapp.ui.theme.page.ProfilePage
-import com.weatherapp.ui.theme.page.SettingsPage
-import com.weatherapp.viewmodel.ViewModelWeather
+import com.weatherapp.page.HomePage
+import com.weatherapp.page.ProfilePage
+import com.weatherapp.page.SettingsPage
 
 @ExperimentalMaterial3Api
 class MainActivity : ComponentActivity() {
@@ -60,7 +58,7 @@ private fun MainScreen() {
         NavigationItem("Profile", Icons.Rounded.Person),
         NavigationItem("Settings", Icons.Rounded.Settings)
     )
-    var selectedNavigation by remember {
+    var selectedNavigation by rememberSaveable() {
         mutableIntStateOf(0)
     }
     val context = LocalContext.current

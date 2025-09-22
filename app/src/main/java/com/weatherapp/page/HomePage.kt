@@ -1,4 +1,4 @@
-package com.weatherapp.ui.theme.page
+package com.weatherapp.page
 
 import android.Manifest
 import androidx.annotation.RequiresPermission
@@ -12,28 +12,19 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.android.gms.location.LocationServices
-import com.weatherapp.dataclass.Condition
-import com.weatherapp.dataclass.CurrentWeather
-import com.weatherapp.dataclass.Location
-import com.weatherapp.dataclass.WeatherResponse
-import com.weatherapp.ui.theme.WeatherAppTheme
 import com.weatherapp.viewmodel.ViewModelSettings
 import com.weatherapp.viewmodel.ViewModelWeather
 
-@RequiresPermission(allOf = [Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION])
 @Composable
 fun HomePage(
     vmWeather: ViewModelWeather = viewModel(),
@@ -41,23 +32,7 @@ fun HomePage(
     ) {
 
     val weatherData by vmWeather.weatherData.collectAsStateWithLifecycle()
-    val gpsPrefs by vmSettings.gpsSettings.collectAsStateWithLifecycle(false)
-//    var userLocation by remember {
-//        mutableStateOf("Jakarta")
-//    }
-
-    if (gpsPrefs) {
-        val context = LocalContext.current
-        val fusedLocationClient = LocationServices.getFusedLocationProviderClient(context)
-        fusedLocationClient.lastLocation.addOnSuccessListener {
-            if (it != null) {
-                val userLocation = "${it.latitude},${it.longitude}"
-                vmWeather.getWeatherDataAlways(userLocation)
-            }
-        }
-    } else {
-        vmWeather.getWeatherDataAlways("Jakarta")
-    }
+    val gpsSettings by vmSettings.gpsSettings.collectAsStateWithLifecycle(false)
 
     val scrollState = rememberScrollState()
 
@@ -136,23 +111,5 @@ fun HomePage(
                 Text(text = weatherData!!.current.wind_dir)
             }
         }
-    }
-}
-
-@Composable
-@Preview(showBackground = true)
-private fun HomePagePreview() {
-    WeatherAppTheme {
-        val mockupData = WeatherResponse(
-            location = Location("Jakarta", "Jakarta Raya", "Indonesia"),
-            current = CurrentWeather(
-                temp_c = 27.5,
-                condition = Condition("Mist"),
-                wind_mph = 101.1,
-                wind_kph = 99.3,
-                wind_degree = 10,
-                wind_dir = "SSE"
-            )
-        )
     }
 }
