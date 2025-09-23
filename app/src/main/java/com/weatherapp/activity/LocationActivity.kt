@@ -5,7 +5,6 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.activity.viewModels
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -20,7 +19,6 @@ import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -37,19 +35,22 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
-import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
 import com.weatherapp.dialog.BottomSheetTextField
+import com.weatherapp.intent.LocationAction
 import com.weatherapp.roomdata.dataclass.Location
+import com.weatherapp.state.LocationState
 import com.weatherapp.ui.theme.WeatherAppTheme
 import com.weatherapp.viewmodel.LocationViewModel
 import com.weatherapp.viewmodel.ViewModelSettings
+import dagger.hilt.android.AndroidEntryPoint
 
-
-class EditActivity : ComponentActivity() {
+@AndroidEntryPoint
+class LocationActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -65,13 +66,16 @@ class EditActivity : ComponentActivity() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun MainScreen(
-    vmSettings: ViewModelSettings = viewModel()
+    vmSettings: ViewModelSettings = viewModel(),
+    viewModel: LocationViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
     val sheetState = rememberModalBottomSheetState()
     var isSheetOpen by rememberSaveable {
         mutableStateOf(false)
     }
+
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
 
     BottomSheetTextField(isSheetOpen)
     Scaffold(
@@ -98,7 +102,7 @@ private fun MainScreen(
                             val dummyLocation = Location(
                                 locationName = "Serang"
                             )
-                            vmSettings.insertLocation(dummyLocation)
+                            viewModel.onAction(LocationAction.InsertLocation(dummyLocation))
                             isSheetOpen = true
                         }
                     ) {
@@ -111,18 +115,20 @@ private fun MainScreen(
             )
         },
     ) { innerPadding ->
-        ContentScreen(Modifier.padding(innerPadding))
+        ContentScreen(Modifier.padding(innerPadding)
+        , uiState = state, onAction = viewModel::onAction)
     }
 }
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
 private fun ContentScreen(
     modifier: Modifier = Modifier,
-    vmSettings: ViewModelSettings = viewModel()
-) {
-    val locationList by vmSettings.allLocation.collectAsState(emptyList())
+    vmSettings: ViewModelSettings = viewModel(),
+    uiState: LocationState,
+    onAction: (LocationAction) -> Unit,
 
-    val gpsPrefs by vmSettings.gpsSettings.collectAsStateWithLifecycle(false)
+) {
+
     val locationPermissionState = rememberPermissionState(
         permission = Manifest.permission.ACCESS_FINE_LOCATION
     )
@@ -142,17 +148,22 @@ private fun ContentScreen(
                     .weight(1f)
             )
             Switch(
-                checked = gpsPrefs,
+                checked = uiState.gpsSettings,
                 onCheckedChange = { isChecked ->
                     if (isChecked) {
-                        if (locationPermissionState.status.isGranted) {
-                            vmSettings.setGpsPrefs(true)
-                        } else {
-                            locationPermissionState.launchPermissionRequest()
-                        }
+                        onAction(LocationAction.GpsSettings(true))
                     } else {
-                        vmSettings.setGpsPrefs(false)
+                        onAction(LocationAction.GpsSettings(false))
                     }
+//                    if (isChecked) {
+//                        if (locationPermissionState.status.isGranted) {
+//                            vmSettings.setGpsPrefs(true)
+//                        } else {
+//                            locationPermissionState.launchPermissionRequest()
+//                        }
+//                    } else {
+//                        vmSettings.setGpsPrefs(false)
+//                    }
                 }
             )
         }
@@ -160,7 +171,7 @@ private fun ContentScreen(
             modifier = Modifier
                 .fillMaxSize()
         ) {
-            items(locationList) { location->
+            items(uiState.locationData) { location->
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 0.dp, vertical = 10.dp)
                 ) {
@@ -172,7 +183,7 @@ private fun ContentScreen(
                     }
                     IconButton(
                         onClick = {
-                            vmSettings.deleteLocation(location)
+                            onAction(LocationAction.DeleteLocation(location))
                         }
                     ) {
                         Icon(

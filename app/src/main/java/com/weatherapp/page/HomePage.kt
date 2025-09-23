@@ -1,7 +1,5 @@
 package com.weatherapp.page
 
-import android.Manifest
-import androidx.annotation.RequiresPermission
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -16,25 +14,26 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
-import com.google.android.gms.location.LocationServices
-import com.weatherapp.viewmodel.ViewModelSettings
-import com.weatherapp.viewmodel.ViewModelWeather
+import com.weatherapp.intent.HomeAction
+import com.weatherapp.viewmodel.HomeViewModel
 
 @Composable
 fun HomePage(
-    vmWeather: ViewModelWeather = viewModel(),
-    vmSettings: ViewModelSettings = viewModel()
+//    vmWeather: ViewModelWeather = viewModel(),
+//    vmSettings: ViewModelSettings = viewModel(),
+    viewModel: HomeViewModel = hiltViewModel()
     ) {
-
-    val weatherData by vmWeather.weatherData.collectAsStateWithLifecycle()
-    val gpsSettings by vmSettings.gpsSettings.collectAsStateWithLifecycle(false)
-
+//    val weatherData by vmWeather.weatherData.collectAsStateWithLifecycle()
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
     val scrollState = rememberScrollState()
+
+    LaunchedEffect(Unit) {
+        viewModel.onAction(HomeAction.FetchWeather)
+    }
 
     Column(
         modifier = Modifier
@@ -42,10 +41,10 @@ fun HomePage(
             .verticalScroll(scrollState, true)
             .padding(horizontal = 15.dp, vertical = 0.dp)
     ) {
-        if (weatherData != null) {
+        if (state.weatherData != null) {
             Spacer(modifier = Modifier.height(25.dp))
             Text(
-                text = "${weatherData!!.current.temp_c}°",
+                text = "${state.weatherData!!.current.temp_c}°",
                 fontSize = 125.sp,
             )
             Spacer(modifier = Modifier.height(25.dp))
@@ -64,11 +63,11 @@ fun HomePage(
                 modifier = Modifier
                     .fillMaxWidth()
             ) {
-                Text(text = weatherData!!.location.country)
+                Text(text = state.weatherData!!.location.country)
                 Spacer(modifier = Modifier.height(5.dp))
-                Text(text = weatherData!!.location.region)
+                Text(text = state.weatherData!!.location.region)
                 Spacer(modifier = Modifier.height(5.dp))
-                Text(text = weatherData!!.location.name)
+                Text(text = state.weatherData!!.location.name)
             }
             Spacer(modifier = Modifier.height(10.dp))
             Column(
@@ -85,7 +84,7 @@ fun HomePage(
                 modifier = Modifier
                     .fillMaxWidth()
             ) {
-                Text(text = weatherData!!.current.condition.text)
+                Text(text = state.weatherData!!.current.condition.text)
             }
             Spacer(modifier = Modifier.height(10.dp))
             Column(
@@ -102,13 +101,13 @@ fun HomePage(
                 modifier = Modifier
                     .fillMaxWidth()
             ) {
-                Text(text = "${weatherData!!.current.wind_mph} MPH")
+                Text(text = "${state.weatherData!!.current.wind_mph} MPH")
                 Spacer(modifier = Modifier.height(5.dp))
-                Text(text = "${weatherData!!.current.wind_kph} KPH")
+                Text(text = "${state.weatherData!!.current.wind_kph} KPH")
                 Spacer(modifier = Modifier.height(5.dp))
-                Text(text = "${weatherData!!.current.wind_degree}°")
+                Text(text = "${state.weatherData!!.current.wind_degree}°")
                 Spacer(modifier = Modifier.height(5.dp))
-                Text(text = weatherData!!.current.wind_dir)
+                Text(text = state.weatherData!!.current.wind_dir)
             }
         }
     }

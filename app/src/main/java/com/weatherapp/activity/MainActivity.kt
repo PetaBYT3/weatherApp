@@ -25,7 +25,6 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -35,8 +34,10 @@ import com.weatherapp.ui.theme.WeatherAppTheme
 import com.weatherapp.page.HomePage
 import com.weatherapp.page.ProfilePage
 import com.weatherapp.page.SettingsPage
+import dagger.hilt.android.AndroidEntryPoint
 
 @ExperimentalMaterial3Api
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -70,7 +71,7 @@ private fun MainScreen() {
                 actions = {
                     IconButton(
                         onClick = {
-                            val intentEdit = Intent(context, EditActivity::class.java)
+                            val intentEdit = Intent(context, LocationActivity::class.java)
                             context.startActivity(intentEdit)
                         }
                     ) {
