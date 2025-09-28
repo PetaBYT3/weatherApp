@@ -18,6 +18,7 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
     }
 
     buildTypes {
@@ -38,6 +39,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
@@ -74,4 +76,13 @@ dependencies {
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
     implementation(libs.androidx.hilt.navigation.compose)
+
+    //Await
+    implementation(libs.kotlinx.coroutines.play.services)
+
+    //Shimmer Loading
+    implementation(libs.compose.shimmer)
+
+    //Icon
+    implementation(libs.androidx.compose.material.icons.extended.android)
 }

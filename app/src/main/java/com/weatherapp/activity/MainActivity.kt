@@ -31,8 +31,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import com.weatherapp.dataclass.NavigationItem
 import com.weatherapp.ui.theme.WeatherAppTheme
-import com.weatherapp.page.HomePage
-import com.weatherapp.page.ProfilePage
+import com.weatherapp.page.HomePageCore
+import com.weatherapp.page.ProfilePageCore
 import com.weatherapp.page.SettingsPage
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -77,6 +77,17 @@ private fun MainScreen() {
                     ) {
                         Icon(
                             imageVector = Icons.Rounded.Edit,
+                            contentDescription = null,
+                        )
+                    }
+                    IconButton(
+                        onClick = {
+                            val intentSettings = Intent(context, SettingsActivity::class.java)
+                            context.startActivity(intentSettings)
+                        }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.Settings,
                             contentDescription = null,
                         )
                     }
@@ -125,8 +136,8 @@ private fun ContentScreen(
         modifier = modifier
     ) {
         when(selectedNavigation) {
-            0 -> HomePage()
-            1 -> ProfilePage()
+            0 -> HomePageCore()
+            1 -> ProfilePageCore()
             2 -> SettingsPage()
         }
     }

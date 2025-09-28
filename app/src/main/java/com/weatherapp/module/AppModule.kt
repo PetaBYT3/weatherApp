@@ -1,5 +1,6 @@
 package com.weatherapp.module
 
+import android.app.Application
 import android.content.Context
 import androidx.room.Room
 import com.weatherapp.repository.LocationRepository
@@ -50,8 +51,9 @@ object AppModule {
     @Singleton
     fun provideLocationRepository(
         locationDao: LocationDao,
-        dataStore: DataStore
+        dataStore: DataStore,
+        @ApplicationContext context: Context
     ): LocationRepository {
-        return LocationRepository(locationDao, dataStore)
+        return LocationRepository(locationDao, dataStore, context.applicationContext as Application)
     }
 }

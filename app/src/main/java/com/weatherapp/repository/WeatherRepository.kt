@@ -21,8 +21,10 @@ class WeatherRepository {
                 apiKey = "f09eb76fc29a4f20905224821251609",
                 query = location
             )
+            Log.d("API_CALL", "Response: $response")
             response
         } catch (e: Exception) {
+            Log.d("API_CALL", "Response: ${e.message}")
             null
         }
     }

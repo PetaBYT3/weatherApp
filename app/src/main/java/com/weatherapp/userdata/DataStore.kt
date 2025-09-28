@@ -6,6 +6,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -18,6 +19,7 @@ class DataStore(private val context: Context) {
 
     companion object {
         val GPS_SETTINGS = booleanPreferencesKey("gps_settings")
+        val SELECTED_LOCATION = intPreferencesKey("selected_location")
     }
 
     val gpsSettingsFlow = context.dataStore.data.map {
@@ -28,5 +30,16 @@ class DataStore(private val context: Context) {
         context.dataStore.edit {
             it[GPS_SETTINGS] = gpsSettings
         }
+    }
+
+    val selectedLocation = context.dataStore.data.map {
+        it[SELECTED_LOCATION] ?: null
+    }
+
+    suspend fun setSelectedLocation(selectedLocation: Int) {
+        context.dataStore.edit {
+            it[SELECTED_LOCATION] = selectedLocation
+        }
+
     }
 }

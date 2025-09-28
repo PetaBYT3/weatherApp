@@ -8,4 +8,5 @@ data class Location(
     @PrimaryKey(autoGenerate = true)
     val uId: Int = 0,
     val locationName: String,
+    val isSelected: Boolean = false
 )

@@ -17,11 +17,17 @@ interface LocationDao {
     suspend fun insertLocation(location: Location)
 
     @Update
-    suspend fun updateLocation(location: Location)
+    suspend fun updateLocation(location: List<Location>)
 
     @Delete
     suspend fun deleteLocation(location: Location)
 
     @Query("SELECT * FROM location_table ORDER BY locationName ASC")
     fun getLocation(): Flow<List<Location>>
+
+    @Query("SELECT * FROM location_table WHERE isSelected = 1 LIMIT 1")
+    fun getSelectedLocation(): Flow<Location?>
+
+    @Query("SELECT * FROM location_table WHERE uId = :uId LIMIT 1")
+    fun getLocationByUid(uId: Int): Flow<Location?>
 }
