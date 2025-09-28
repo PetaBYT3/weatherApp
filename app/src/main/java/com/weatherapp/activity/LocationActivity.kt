@@ -114,7 +114,7 @@ private fun MainScreenCore(
     }
 
     if (uiState.bottomSheetPermissionLocation) {
-        BottomSheetLocationPermission(viewModel::onAction)
+        BottomSheetLocationPermission(state = uiState, onAction = viewModel::onAction)
     }
 }
 
@@ -649,6 +649,7 @@ private fun BottomSheetSelectLocation(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun BottomSheetLocationPermission(
+    state: LocationState,
     onAction: (LocationAction) -> Unit
 ) {
     val context = LocalContext.current

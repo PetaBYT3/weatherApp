@@ -4,6 +4,7 @@ import android.app.Application
 import android.content.Context
 import androidx.room.Room
 import com.weatherapp.repository.LocationRepository
+import com.weatherapp.repository.SettingsRepository
 import com.weatherapp.repository.WeatherRepository
 import com.weatherapp.roomdata.dao.LocationDao
 import com.weatherapp.roomdata.database.LocationDatabase
@@ -27,6 +28,25 @@ object AppModule {
 
     @Provides
     @Singleton
+    fun provideSettingsRepository(
+        dataStore: DataStore
+    ): SettingsRepository {
+        return SettingsRepository(dataStore)
+    }
+
+    @Provides
+    @Singleton
+    fun provideLocationRepository(
+        locationDao: LocationDao,
+        dataStore: DataStore,
+        @ApplicationContext context: Context
+    ): LocationRepository {
+        return LocationRepository(locationDao, dataStore, context.applicationContext as Application)
+    }
+
+    //Local Database Provider
+    @Provides
+    @Singleton
     fun provideDataStore(@ApplicationContext context: Context): DataStore {
         return DataStore(context)
     }
@@ -45,15 +65,5 @@ object AppModule {
             LocationDatabase::class.java,
             "location_database"
         ).build()
-    }
-
-    @Provides
-    @Singleton
-    fun provideLocationRepository(
-        locationDao: LocationDao,
-        dataStore: DataStore,
-        @ApplicationContext context: Context
-    ): LocationRepository {
-        return LocationRepository(locationDao, dataStore, context.applicationContext as Application)
     }
 }

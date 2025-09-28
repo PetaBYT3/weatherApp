@@ -7,6 +7,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -20,6 +21,8 @@ class DataStore(private val context: Context) {
     companion object {
         val GPS_SETTINGS = booleanPreferencesKey("gps_settings")
         val SELECTED_LOCATION = intPreferencesKey("selected_location")
+        val DEGREE = stringPreferencesKey("degree")
+        val REFRESH_COUNT_DOWN = intPreferencesKey("refresh_count_down")
     }
 
     val gpsSettingsFlow = context.dataStore.data.map {
@@ -33,13 +36,32 @@ class DataStore(private val context: Context) {
     }
 
     val selectedLocation = context.dataStore.data.map {
-        it[SELECTED_LOCATION] ?: null
+        it[SELECTED_LOCATION] ?: 0
     }
 
     suspend fun setSelectedLocation(selectedLocation: Int) {
         context.dataStore.edit {
             it[SELECTED_LOCATION] = selectedLocation
         }
+    }
 
+    val degree = context.dataStore.data.map {
+        it[DEGREE] ?: "Celsius"
+    }
+
+    suspend fun setDegree(degree: String) {
+        context.dataStore.edit {
+            it[DEGREE] = degree
+        }
+    }
+
+    val refreshCountDown = context.dataStore.data.map {
+        it[REFRESH_COUNT_DOWN] ?: 5
+    }
+
+    suspend fun setRefreshCountDown(refreshCountDown: Int) {
+        context.dataStore.edit {
+            it[REFRESH_COUNT_DOWN] = refreshCountDown
+        }
     }
 }
