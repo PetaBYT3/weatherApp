@@ -39,37 +39,23 @@ fun CustomProgressBar(
     uiState: HomeState,
     onAction: (HomeAction) -> Unit
 ) {
-    var progress by rememberSaveable {
-        mutableFloatStateOf(0f)
-    }
     var duration by rememberSaveable {
         mutableIntStateOf(0)
     }
 
     if (uiState.isCountDownStart == true) {
         onAction(HomeAction.CountDownProgress(1f))
-        duration = 4500
+        duration = 5000
     } else {
         onAction(HomeAction.CountDownProgress(0f))
         duration = 500
-    }
-
-    var countDown by rememberSaveable {
-        mutableIntStateOf(1000)
-    }
-
-    LaunchedEffect(Unit) {
-        while (countDown > 0) {
-            delay(100)
-            countDown -= 1
-        }
     }
 
     val size by animateFloatAsState(
         targetValue = uiState.countDownProgress!!,
         tween(
             durationMillis = duration,
-            delayMillis = 200,
+            delayMillis = 0,
             easing = LinearEasing
         )
     )
@@ -92,7 +78,6 @@ fun CustomProgressBar(
             )
         }
     }
-    Text(text = countDown.toString())
 }
 
 @Composable

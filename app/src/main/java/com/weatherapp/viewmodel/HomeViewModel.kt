@@ -8,6 +8,7 @@ import androidx.lifecycle.viewModelScope
 import com.weatherapp.dataclass.LocationWithWeather
 import com.weatherapp.intent.HomeAction
 import com.weatherapp.repository.LocationRepository
+import com.weatherapp.repository.SettingsRepository
 import com.weatherapp.repository.WeatherRepository
 import com.weatherapp.roomdata.dataclass.Location
 import com.weatherapp.state.HomeState
@@ -27,13 +28,20 @@ import javax.inject.Inject
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val weatherRepository: WeatherRepository,
-    private val locationRepository: LocationRepository
+    private val locationRepository: LocationRepository,
+    private val settingsRepository: SettingsRepository
 ): ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeState())
     val uiState = _uiState.asStateFlow()
 
     init {
+        viewModelScope.launch {
+            settingsRepository.refreshCountDown.collect { countDown ->
+                _uiState.update { it.copy(refreshWeatherCountDown = countDown) }
+            }
+        }
+
         viewModelScope.launch {
             locationRepository.selectedLocation.collect { selectedLocation ->
                 _uiState.update { it.copy(selectedLocationUid = selectedLocation) }
@@ -56,6 +64,12 @@ class HomeViewModel @Inject constructor(
                     )
                 }
                 _uiState.update { it.copy(locationWithWeatherList = locationList) }
+            }
+        }
+
+        viewModelScope.launch {
+            settingsRepository.degree.collect { degree ->
+                _uiState.update { it.copy(degreeFormat = degree) }
             }
         }
     }

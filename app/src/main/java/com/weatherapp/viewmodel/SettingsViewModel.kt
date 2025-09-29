@@ -53,7 +53,11 @@ class SettingsViewModel @Inject constructor(
                     bottomSheetDegree = action.isOpen
                 )
             }
-            is SettingsAction.SetDegree -> {}
+            is SettingsAction.SetDegree -> {
+                viewModelScope.launch {
+                    settingsRepository.setDegree(action.degree)
+                }
+            }
         }
     }
 }

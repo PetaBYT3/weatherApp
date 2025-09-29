@@ -46,7 +46,7 @@ class DataStore(private val context: Context) {
     }
 
     val degree = context.dataStore.data.map {
-        it[DEGREE] ?: "Celsius"
+        it[DEGREE] ?: "Celcius"
     }
 
     suspend fun setDegree(degree: String) {

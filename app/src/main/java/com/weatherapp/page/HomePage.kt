@@ -96,7 +96,7 @@ private fun HomePage(
             onAction(HomeAction.GetWeatherDataDelay(true))
             delay(5000)
             onAction(HomeAction.GetWeatherDataDelay(false))
-            delay(1000)
+            delay(500)
         }
     }
 
@@ -149,11 +149,18 @@ private fun HomePage(
                 Card(
                     modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp))
                 ) {
-                    Text(
-                        modifier = Modifier.padding(15.dp),
-                        text = "${uiState.weatherData.current.temp_c}°C",
-                        fontSize = 100.sp,
-                    )
+                    when (uiState.degreeFormat) {
+                        "Celcius" -> Text(
+                            modifier = Modifier.padding(15.dp),
+                            text = "${uiState.weatherData.current.temp_c}°C",
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                        "Fahrenheit" -> Text(
+                            modifier = Modifier.padding(15.dp),
+                            text = "${uiState.weatherData.current.temp_f}°F",
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                    }
                 }
                 Spacer(modifier = Modifier.height(10.dp))
                 Card(

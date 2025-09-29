@@ -22,6 +22,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.AcUnit
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.ArrowDownward
 import androidx.compose.material.icons.rounded.Timer
@@ -42,7 +43,10 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.rememberSliderState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -141,7 +145,7 @@ private fun ContentScreen(
     ) {
         val settingsList = listOf(
             Settings(
-                icon = Icons.Rounded.Add,
+                icon = Icons.Rounded.AcUnit,
                 title = "Degree",
                 description = uiState.degree.toString(),
                 isBottomSheet = true,
@@ -222,6 +226,11 @@ private fun BottomSheetDegree(
 ) {
     val sheetState = rememberModalBottomSheetState()
     val scope = rememberCoroutineScope()
+
+    val options = listOf("Celcius", "Fahrenheit")
+    var selectedDegree by rememberSaveable {
+        mutableStateOf(uiState.degree.toString())
+    }
     ModalBottomSheet(
         sheetState = sheetState,
         onDismissRequest = {
@@ -236,18 +245,32 @@ private fun BottomSheetDegree(
                 style = MaterialTheme.typography.titleLarge,
                 modifier = Modifier.padding(bottom = 15.dp)
             )
-            RadioButton(
-                selected = true,
-                onClick = {
-                    onAction(SettingsAction.OpenDegreeBottomSheet(false))
-                },
-                modifier = Modifier.padding(bottom = 15.dp)
-            )
+            Column {
+                options.forEach { option ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        RadioButton(
+                            selected = selectedDegree == option,
+                            onClick = {
+                                selectedDegree = option
+                            }
+                        )
+                        Spacer(modifier = Modifier.width(5.dp))
+                        Text(
+                            text = option,
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                    }
+                }
+            }
             Button(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 15.dp, bottom = 15.dp),
                 onClick = {
+                    onAction(SettingsAction.SetDegree(selectedDegree))
                     scope.launch {
                         sheetState.hide()
                     }.invokeOnCompletion {
@@ -255,7 +278,7 @@ private fun BottomSheetDegree(
                     }
                 }
             ) {
-                Text(text = "Set Count Down")
+                Text(text = "Set Format")
             }
         }
     }
