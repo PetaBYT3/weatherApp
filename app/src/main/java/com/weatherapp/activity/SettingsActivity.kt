@@ -350,7 +350,7 @@ private fun BottomSheetWind(
             Column {
                 options.forEach { option ->
                     Row(
-                        modifier = Modifier.fillMaxWidth().padding(15.dp),
+                        modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         RadioButton(
@@ -484,6 +484,12 @@ private fun BottomSheetAbout(
                     .fillMaxWidth()
                     .verticalScroll(scrollState, true)
             ) {
+                TextTitle(text = "Used Technology")
+                Spacer(Modifier.height(10.dp))
+                Card {
+
+                }
+
                 TextTitle(text = "Used Technology")
                 Spacer(Modifier.height(10.dp))
                 Row {
