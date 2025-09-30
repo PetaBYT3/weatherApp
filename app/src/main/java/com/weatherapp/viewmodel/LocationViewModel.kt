@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.weatherapp.dataclass.LocationWithWeather
 import com.weatherapp.intent.LocationAction
 import com.weatherapp.repository.LocationRepository
+import com.weatherapp.repository.SettingsRepository
 import com.weatherapp.repository.WeatherRepository
 import com.weatherapp.roomdata.dataclass.Location
 import com.weatherapp.state.LocationState
@@ -29,7 +30,8 @@ import kotlin.collections.emptyList
 @HiltViewModel
 class LocationViewModel @Inject constructor(
     private val locationRepository: LocationRepository,
-    private val weatherRepository: WeatherRepository
+    private val weatherRepository: WeatherRepository,
+    private val settingsRepository: SettingsRepository
 ): ViewModel() {
 
     private val _uiState = MutableStateFlow(LocationState())
@@ -58,6 +60,12 @@ class LocationViewModel @Inject constructor(
                     )
                 }
                 _uiState.update { it.copy(locationWithWeatherList = locationList) }
+            }
+        }
+
+        viewModelScope.launch {
+            settingsRepository.degree.collect { degree ->
+                _uiState.update { it.copy(degreeFormat = degree) }
             }
         }
     }

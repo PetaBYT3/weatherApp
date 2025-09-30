@@ -45,10 +45,11 @@ fun CustomProgressBar(
 
     if (uiState.isCountDownStart == true) {
         onAction(HomeAction.CountDownProgress(1f))
-        duration = 5000
+        val countDown = uiState.refreshWeatherCountDown!!.times(1000)
+        duration = countDown
     } else {
         onAction(HomeAction.CountDownProgress(0f))
-        duration = 500
+        duration = 1000
     }
 
     val size by animateFloatAsState(
@@ -61,13 +62,14 @@ fun CustomProgressBar(
     )
 
     Column(
-        modifier = Modifier.clip(RoundedCornerShape(50)).fillMaxWidth()
+        modifier = Modifier.clip(RoundedCornerShape(50)).fillMaxWidth().animateContentSize()
     ) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(10.dp)
                 .background(Color.DarkGray)
+                .animateContentSize()
         ) {
             Box(
                 modifier = Modifier

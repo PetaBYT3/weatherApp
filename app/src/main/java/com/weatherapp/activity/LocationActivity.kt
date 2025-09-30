@@ -27,6 +27,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.LocationOn
 import androidx.compose.material.icons.rounded.Lock
@@ -40,6 +41,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
@@ -231,6 +233,7 @@ private fun ContentScreen(
                             modifier = Modifier.fillMaxWidth().padding(15.dp),
                         ) {
                             Row(
+                                modifier = Modifier.padding(bottom = 15.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Icon(
@@ -269,12 +272,11 @@ private fun ContentScreen(
                                     )
                                 }
                             }
-                            HorizontalDivider(modifier = Modifier.padding(vertical = 15.dp))
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Button(
+                                OutlinedButton(
                                     onClick = {
                                         onAction(LocationAction.OpenBottomSheetDelete(locationList))
                                     }
@@ -284,10 +286,18 @@ private fun ContentScreen(
                                 Spacer(Modifier.weight(1f))
                                 onAction(LocationAction.GetWeatherResponse(locationList.location))
                                 if (locationList.weatherResponse != null) {
-                                    Text(
-                                        text =  "${locationList.weatherResponse.current.temp_c}°C",
-                                        fontSize = 30.sp
-                                    )
+                                    when (uiState.degreeFormat) {
+                                        "Celcius" ->
+                                            Text(
+                                                text =  "${locationList.weatherResponse.current.temp_c}°C",
+                                                fontSize = 30.sp
+                                            )
+                                        "Fahrenheit" ->
+                                            Text(
+                                                text =  "${locationList.weatherResponse.current.temp_f}°F",
+                                                fontSize = 30.sp
+                                            )
+                                    }
                                     Spacer(modifier = Modifier.width(10.dp))
                                     AsyncImage(
                                         modifier = Modifier.size(50.dp),
@@ -470,6 +480,7 @@ private fun BottomSheetDelete(
                     modifier = Modifier.fillMaxWidth().padding(15.dp),
                 ) {
                     Row(
+                        modifier = Modifier.padding(bottom = 15.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
@@ -484,7 +495,6 @@ private fun BottomSheetDelete(
                             style = MaterialTheme.typography.bodyLarge
                         )
                     }
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 15.dp))
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically
@@ -492,14 +502,22 @@ private fun BottomSheetDelete(
                         Spacer(Modifier.weight(1f))
                         val locationToDelete = uiState.locationToDelete!!
                         if (locationToDelete.isWeatherFetched) {
-                            Text(
-                                text =  "${locationToDelete.weatherResponse!!.current.temp_c}°C",
-                                fontSize = 30.sp
-                            )
+                            when (uiState.degreeFormat) {
+                                "Celcius" ->
+                                    Text(
+                                        text =  "${locationToDelete.weatherResponse!!.current.temp_c}°C",
+                                        fontSize = 30.sp
+                                    )
+                                "Fahrenheit" ->
+                                    Text(
+                                        text =  "${locationToDelete.weatherResponse!!.current.temp_f}°F",
+                                        fontSize = 30.sp
+                                    )
+                            }
                             Spacer(modifier = Modifier.width(10.dp))
                             AsyncImage(
                                 modifier = Modifier.size(50.dp),
-                                model = "https:${locationToDelete.weatherResponse.current.condition.icon}",
+                                model = "https:${locationToDelete.weatherResponse!!.current.condition.icon}",
                                 contentDescription = null
                             )
                         } else {
@@ -530,11 +548,7 @@ private fun BottomSheetDelete(
                     .fillMaxWidth()
                     .padding(top = 15.dp, bottom = 15.dp),
                 onClick = {
-                    scope.launch {
-                        sheetState.hide()
-                    }.invokeOnCompletion {
-                        onAction(LocationAction.ConfirmDeleteLocation)
-                    }
+
                 }
             ) {
                 Text(text = "Delete")
@@ -573,6 +587,7 @@ private fun BottomSheetSelectLocation(
                     modifier = Modifier.fillMaxWidth().padding(15.dp),
                 ) {
                     Row(
+                        modifier = Modifier.padding(bottom = 15.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
@@ -587,7 +602,6 @@ private fun BottomSheetSelectLocation(
                             style = MaterialTheme.typography.bodyLarge
                         )
                     }
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 15.dp))
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically
@@ -595,14 +609,22 @@ private fun BottomSheetSelectLocation(
                         Spacer(Modifier.weight(1f))
                         val locationToSelect = uiState.locationToSelect!!
                         if (locationToSelect.isWeatherFetched) {
-                            Text(
-                                text =  "${locationToSelect.weatherResponse!!.current.temp_c}°C",
-                                fontSize = 30.sp
-                            )
+                            when (uiState.degreeFormat) {
+                                "Celcius" ->
+                                    Text(
+                                        text =  "${locationToSelect.weatherResponse!!.current.temp_c}°C",
+                                        fontSize = 30.sp
+                                    )
+                                "Fahrenheit" ->
+                                    Text(
+                                        text =  "${locationToSelect.weatherResponse!!.current.temp_f}°F",
+                                        fontSize = 30.sp
+                                    )
+                            }
                             Spacer(modifier = Modifier.width(10.dp))
                             AsyncImage(
                                 modifier = Modifier.size(50.dp),
-                                model = "https:${locationToSelect.weatherResponse.current.condition.icon}",
+                                model = "https:${locationToSelect.weatherResponse!!.current.condition.icon}",
                                 contentDescription = null
                             )
                         } else {

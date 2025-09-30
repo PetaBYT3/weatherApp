@@ -9,6 +9,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import jakarta.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 @HiltViewModel
@@ -27,6 +28,13 @@ class SettingsViewModel @Inject constructor(
                 )
             }
         }
+
+        viewModelScope.launch {
+            settingsRepository.wind.collect { wind ->
+                _uiState.update { it.copy(wind = wind) }
+            }
+        }
+
         viewModelScope.launch {
             settingsRepository.refreshCountDown.collect {
                 _uiState.value = _uiState.value.copy(
@@ -56,6 +64,25 @@ class SettingsViewModel @Inject constructor(
             is SettingsAction.SetDegree -> {
                 viewModelScope.launch {
                     settingsRepository.setDegree(action.degree)
+                }
+            }
+            is SettingsAction.OpenWindBottomSheet -> {
+                viewModelScope.launch {
+                    _uiState.update {
+                        it.copy(bottomSheetWind = action.isOpen)
+                    }
+                }
+            }
+            is SettingsAction.SetWind -> {
+                viewModelScope.launch {
+                    settingsRepository.setWind(action.wind)
+                }
+            }
+            is SettingsAction.OpenAboutBottomSheet -> {
+                viewModelScope.launch {
+                    _uiState.update {
+                        it.copy(bottomSheetAbout = action.isOpen)
+                    }
                 }
             }
         }

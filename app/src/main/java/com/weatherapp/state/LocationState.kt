@@ -10,6 +10,7 @@ data class LocationState(
 
     //List
     val locationWithWeatherList: List<LocationWithWeather> = emptyList(),
+    val degreeFormat: String? = null,
 
     //Selected Location
     val selectedLocation: Int? = null,

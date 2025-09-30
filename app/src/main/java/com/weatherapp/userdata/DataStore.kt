@@ -21,6 +21,7 @@ class DataStore(private val context: Context) {
     companion object {
         val GPS_SETTINGS = booleanPreferencesKey("gps_settings")
         val SELECTED_LOCATION = intPreferencesKey("selected_location")
+        val WIND = stringPreferencesKey("wind")
         val DEGREE = stringPreferencesKey("degree")
         val REFRESH_COUNT_DOWN = intPreferencesKey("refresh_count_down")
     }
@@ -52,6 +53,16 @@ class DataStore(private val context: Context) {
     suspend fun setDegree(degree: String) {
         context.dataStore.edit {
             it[DEGREE] = degree
+        }
+    }
+
+    val wind = context.dataStore.data.map {
+        it[WIND] ?: "MPH"
+    }
+
+    suspend fun setWind(wind: String) {
+        context.dataStore.edit {
+            it[WIND] = wind
         }
     }
 

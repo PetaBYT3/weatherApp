@@ -39,6 +39,7 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             settingsRepository.refreshCountDown.collect { countDown ->
                 _uiState.update { it.copy(refreshWeatherCountDown = countDown) }
+                _uiState.update { it.copy(countDownTimer = countDown) }
             }
         }
 
@@ -70,6 +71,12 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             settingsRepository.degree.collect { degree ->
                 _uiState.update { it.copy(degreeFormat = degree) }
+            }
+        }
+
+        viewModelScope.launch {
+            settingsRepository.wind.collect { wind ->
+                _uiState.update { it.copy(windFormat = wind) }
             }
         }
     }
@@ -140,6 +147,11 @@ class HomeViewModel @Inject constructor(
                     _uiState.update {
                         it.copy(locationWithWeatherList = updatedList)
                     }
+                }
+            }
+            is HomeAction.CountDownTimer -> {
+                viewModelScope.launch {
+                    _uiState.update { it.copy(countDownTimer = action.countDownTimer) }
                 }
             }
         }

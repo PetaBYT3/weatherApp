@@ -9,6 +9,7 @@ sealed interface HomeAction {
     data object GetWeatherData: HomeAction
     data class GetWeatherDataDelay(val isCountDownStart: Boolean): HomeAction
     data class CountDownProgress(val countDownProgress: Float): HomeAction
+    data class CountDownTimer(val countDownTimer: Int): HomeAction
 
     data class GetWeatherResponse(val locationData: Location): HomeAction
 

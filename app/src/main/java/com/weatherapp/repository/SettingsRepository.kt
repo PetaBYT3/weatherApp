@@ -13,6 +13,12 @@ class SettingsRepository @Inject constructor(
         dataStore.setDegree(newDegree)
     }
 
+    val wind = dataStore.wind
+
+    suspend fun setWind(newWind: String) {
+        dataStore.setWind(newWind)
+    }
+
     val refreshCountDown = dataStore.refreshCountDown
 
     suspend fun setRefreshCountDown(newRefreshCountDown: Int) {

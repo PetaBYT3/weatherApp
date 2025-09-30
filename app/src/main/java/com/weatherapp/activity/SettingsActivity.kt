@@ -2,7 +2,9 @@
 
 package com.weatherapp.activity
 
+import android.content.Intent
 import android.os.Bundle
+import android.widget.Space
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -16,16 +18,23 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.AcUnit
-import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.ArrowDownward
+import androidx.compose.material.icons.rounded.ArrowForward
+import androidx.compose.material.icons.rounded.ContentCopy
+import androidx.compose.material.icons.rounded.Email
+import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Timer
+import androidx.compose.material.icons.rounded.WindPower
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -51,6 +60,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -64,6 +74,11 @@ import com.weatherapp.utilities.TextTitle
 import com.weatherapp.viewmodel.SettingsViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
+import androidx.core.net.toUri
+import com.google.android.gms.common.internal.StringResourceValueReader
+import com.weatherapp.R
+import com.weatherapp.utilities.copyToClipboard
+import com.weatherapp.utilities.intentApp
 
 @AndroidEntryPoint
 class SettingsActivity : ComponentActivity() {
@@ -91,6 +106,14 @@ private fun MainScreenCore(
 
     if (uiState.bottomSheetDegree) {
         BottomSheetDegree(uiState = uiState, onAction = viewModel::onAction)
+    }
+
+    if (uiState.bottomSheetWind) {
+        BottomSheetWind(uiState = uiState, onAction = viewModel::onAction)
+    }
+
+    if (uiState.bottomSheetAbout) {
+        BottomSheetAbout(uiState = uiState, onAction = viewModel::onAction)
     }
 }
 
@@ -152,12 +175,26 @@ private fun ContentScreen(
                 openBottomSheet = { onAction(SettingsAction.OpenDegreeBottomSheet(true)) },
             ),
             Settings(
+                icon = Icons.Rounded.WindPower,
+                title = "Wind",
+                description = uiState.wind.toString(),
+                isBottomSheet = true,
+                openBottomSheet = { onAction(SettingsAction.OpenWindBottomSheet(true)) },
+            ),
+            Settings(
                 icon = Icons.Rounded.Timer,
                 title = "Refresh Weather Count Down",
                 description = "${uiState.refreshCountDown}s",
                 isBottomSheet = true,
                 openBottomSheet = { onAction(SettingsAction.OpenCountDownBottomSheet(true)) },
             ),
+            Settings(
+                icon = Icons.Rounded.Info,
+                title = "Info",
+                description = "About app",
+                isBottomSheet = true,
+                openBottomSheet = { onAction(SettingsAction.OpenAboutBottomSheet(true)) },
+            )
         )
         LazyColumn(
             modifier = Modifier.fillMaxSize()
@@ -278,7 +315,72 @@ private fun BottomSheetDegree(
                     }
                 }
             ) {
-                Text(text = "Set Format")
+                Text(text = "Set Degree Format")
+            }
+        }
+    }
+}
+
+@Composable
+private fun BottomSheetWind(
+    uiState: SettingsState,
+    onAction: (SettingsAction) -> Unit
+) {
+    val sheetState = rememberModalBottomSheetState()
+    val scope = rememberCoroutineScope()
+
+    val options = listOf("MPH", "KPH")
+    var selectedWind by rememberSaveable {
+        mutableStateOf(uiState.wind.toString())
+    }
+    ModalBottomSheet(
+        sheetState = sheetState,
+        onDismissRequest = {
+            onAction(SettingsAction.OpenWindBottomSheet(false))
+        }
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 15.dp, vertical = 0.dp)
+        ) {
+            Text(
+                text = "Wind Format",
+                style = MaterialTheme.typography.titleLarge,
+                modifier = Modifier.padding(bottom = 15.dp)
+            )
+            Column {
+                options.forEach { option ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(15.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        RadioButton(
+                            selected = selectedWind == option,
+                            onClick = {
+                                selectedWind = option
+                            }
+                        )
+                        Spacer(modifier = Modifier.width(5.dp))
+                        Text(
+                            text = option,
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                    }
+                }
+            }
+            Button(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 15.dp, bottom = 15.dp),
+                onClick = {
+                    onAction(SettingsAction.SetWind(selectedWind))
+                    scope.launch {
+                        sheetState.hide()
+                    }.invokeOnCompletion {
+                        onAction(SettingsAction.OpenWindBottomSheet(false))
+                    }
+                }
+            ) {
+                Text(text = "Set Wind Format")
             }
         }
     }
@@ -307,8 +409,8 @@ private fun BottomSheetCountDown(
             )
             val sliderState = rememberSliderState(
                 value = uiState.refreshCountDown!!.toFloat(),
-                valueRange = 5f..10f,
-                steps = 4
+                valueRange = 5f..60f,
+                steps = 10
             )
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -347,3 +449,251 @@ private fun BottomSheetCountDown(
         }
     }
 }
+
+@Composable
+private fun BottomSheetAbout(
+    uiState: SettingsState,
+    onAction: (SettingsAction) -> Unit
+) {
+    val sheetState = rememberModalBottomSheetState(
+        skipPartiallyExpanded = true
+    )
+    val scrollState = rememberScrollState()
+    val scope = rememberCoroutineScope()
+    val context = LocalContext.current
+    val packageManager = context.packageManager
+
+    ModalBottomSheet(
+        sheetState = sheetState,
+        onDismissRequest = {
+            onAction(SettingsAction.OpenAboutBottomSheet(false))
+        }
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 15.dp, vertical = 0.dp)
+        ) {
+            Text(
+                text = "About",
+                style = MaterialTheme.typography.titleLarge,
+                modifier = Modifier.padding(bottom = 15.dp)
+            )
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(scrollState, true)
+            ) {
+                TextTitle(text = "Used Technology")
+                Spacer(Modifier.height(10.dp))
+                Row {
+                    Card(
+                        modifier = Modifier.clip(RoundedCornerShape(20.dp)),
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .padding(15.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                painter = painterResource(R.drawable.kotlin),
+                                contentDescription = null
+                            )
+                            Spacer(Modifier.width(10.dp))
+                            TextContent(text = "Kotlin")
+                        }
+                    }
+                    Spacer(Modifier.width(10.dp))
+                    Card(
+                        modifier = Modifier.clip(RoundedCornerShape(20.dp)),
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .padding(15.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                painter = painterResource(R.drawable.jetpackcompose),
+                                contentDescription = null
+                            )
+                            Spacer(Modifier.width(10.dp))
+                            TextContent(text = "Jetpack Compose")
+                        }
+                    }
+                }
+                Spacer(Modifier.height(20.dp))
+                TextTitle(text = "Contact Developer")
+                Spacer(Modifier.height(10.dp))
+                Card(
+                    modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)),
+                    onClick = {
+                        copyToClipboard(
+                            label = "E-Mail",
+                            text = "andreahussanini.2103@gmail.com",
+                            context = context
+                        )
+                    }
+                ) {
+                    Row(
+                        modifier = Modifier.padding(15.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.Email,
+                            contentDescription = null
+                        )
+                        Spacer(modifier = Modifier.width(15.dp))
+                        Text(
+                            text = "E-Mail",
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                        Spacer(Modifier.weight(1f))
+                        Icon(
+                            imageVector = Icons.Rounded.ContentCopy,
+                            contentDescription = null
+                        )
+                    }
+                }
+                Spacer(Modifier.height(10.dp))
+                Card(
+                    modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)),
+                    onClick = {
+                        intentApp(
+                            webUrl = "https://www.linkedin.com/in/andrea-hussanini-274223218/",
+                            appPackage = "com.linkedin.android",
+                            context = context
+                        )
+                    }
+                ) {
+                    Row(
+                        modifier = Modifier.padding(15.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.linkedin),
+                            contentDescription = null
+                        )
+                        Spacer(modifier = Modifier.width(15.dp))
+                        Text(
+                            text = "LinkedIn",
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                        Spacer(Modifier.weight(1f))
+                        Icon(
+                            imageVector = Icons.Rounded.ArrowForward,
+                            contentDescription = null
+                        )
+                    }
+                }
+                Spacer(Modifier.height(10.dp))
+                Card(
+                    modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)),
+                    onClick = {
+                        intentApp(
+                            webUrl = "https://github.com/PetaBYT3",
+                            appPackage = "com.github.android",
+                            context = context
+                        )
+                    }
+                ) {
+                    Row(
+                        modifier = Modifier.padding(15.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.github),
+                            contentDescription = null
+                        )
+                        Spacer(modifier = Modifier.width(15.dp))
+                        Text(
+                            text = "GitHub",
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                        Spacer(Modifier.weight(1f))
+                        Icon(
+                            imageVector = Icons.Rounded.ArrowForward,
+                            contentDescription = null
+                        )
+                    }
+                }
+                Spacer(Modifier.height(10.dp))
+                Card(
+                    modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)),
+                    onClick = {
+                        intentApp(
+                            webUrl = "https://www.instagram.com/_andre.kt/",
+                            appPackage = "com.instagram.lite",
+                            context = context
+                        )
+                    }
+                ) {
+                    Row(
+                        modifier = Modifier.padding(15.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.instagram),
+                            contentDescription = null
+                        )
+                        Spacer(modifier = Modifier.width(15.dp))
+                        Text(
+                            text = "Instagram",
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                        Spacer(Modifier.weight(1f))
+                        Icon(
+                            imageVector = Icons.Rounded.ArrowForward,
+                            contentDescription = null
+                        )
+                    }
+                }
+                Spacer(Modifier.height(10.dp))
+                Card(
+                    modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)),
+                    onClick = {
+                        intentApp(
+                            webUrl = "https://www.tiktok.com/@xliicxiv",
+                            appPackage = "com.ss.android.ugc.trill",
+                            context = context
+                        )
+                    }
+                ) {
+                    Row(
+                        modifier = Modifier.padding(15.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.tiktok),
+                            contentDescription = null
+                        )
+                        Spacer(modifier = Modifier.width(15.dp))
+                        Text(
+                            text = "TikTok",
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                        Spacer(Modifier.weight(1f))
+                        Icon(
+                            imageVector = Icons.Rounded.ArrowForward,
+                            contentDescription = null
+                        )
+                    }
+                }
+            }
+            Button(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 15.dp, bottom = 15.dp),
+                onClick = {
+                    scope.launch {
+                        sheetState.hide()
+                    }.invokeOnCompletion {
+                        onAction(SettingsAction.OpenAboutBottomSheet(false))
+                    }
+                }
+            ) {
+                Text(text = "Close")
+            }
+        }
+    }
+}
+

@@ -8,6 +8,7 @@ data class HomeState(
 
     val weatherData: WeatherResponse? = null,
     val degreeFormat: String? = null,
+    val windFormat: String? = null,
     val selectedLocationUid: Int? = null,
     val locationToFetch: String? = null,
     val coordinateToFetch: String? = null,
@@ -15,5 +16,6 @@ data class HomeState(
 
     val locationWithWeatherList: List<LocationWithWeather> = emptyList(),
     val isCountDownStart: Boolean? = false,
-    val countDownProgress: Float? = 0f
+    val countDownProgress: Float? = 0f,
+    val countDownTimer: Int? = 0
 )
