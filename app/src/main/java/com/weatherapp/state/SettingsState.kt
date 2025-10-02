@@ -2,6 +2,7 @@ package com.weatherapp.state
 
 data class SettingsState(
     //Base Data
+    val notification: Boolean = false,
     val bottomSheetDegree: Boolean = false,
     val degree: String? = null,
     val bottomSheetWind: Boolean = false,

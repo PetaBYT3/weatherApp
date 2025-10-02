@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Weather App</string>
+    <string name="app_name">Weather</string>
     <string name="title_activity_settings">SettingsActivity</string>
     <string name="title_activity_main">MainActivity</string>
 

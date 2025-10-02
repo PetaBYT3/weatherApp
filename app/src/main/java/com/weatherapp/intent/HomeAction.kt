@@ -13,5 +13,6 @@ sealed interface HomeAction {
 
     data class GetWeatherResponse(val locationData: Location): HomeAction
 
-
+    data class OpenBottomSheetGemini(val isOpen: Boolean): HomeAction
+    data object GetGeminiResponse: HomeAction
 }

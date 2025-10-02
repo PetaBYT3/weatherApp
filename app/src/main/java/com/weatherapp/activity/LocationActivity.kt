@@ -43,6 +43,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Snackbar
+import androidx.compose.material3.SnackbarData
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -126,11 +130,15 @@ private fun MainScreen(
     uiState: LocationState,
     onAction: (LocationAction) -> Unit
 ) {
+
+    val snackBarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
 
     Scaffold(
         modifier = Modifier
             .fillMaxSize(),
+        snackbarHost = { SnackbarHost(hostState = snackBarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text(text = "Location") },
@@ -149,7 +157,13 @@ private fun MainScreen(
                 actions = {
                     IconButton(
                         onClick = {
-                            onAction(LocationAction.OpenBottomSheetInput)
+                            if (uiState.gpsSettings) {
+                                scope.launch {
+                                    snackBarHostState.showSnackbar("Disable GPS First To Add Location")
+                                }
+                            } else {
+                                onAction(LocationAction.OpenBottomSheetInput)
+                            }
                         }
                     ) {
                         Icon(

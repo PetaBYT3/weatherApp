@@ -20,6 +20,7 @@ class DataStore(private val context: Context) {
 
     companion object {
         val GPS_SETTINGS = booleanPreferencesKey("gps_settings")
+        val NOTIFICATION = booleanPreferencesKey("notification")
         val SELECTED_LOCATION = intPreferencesKey("selected_location")
         val WIND = stringPreferencesKey("wind")
         val DEGREE = stringPreferencesKey("degree")
@@ -33,6 +34,16 @@ class DataStore(private val context: Context) {
     suspend fun setGpsSettings(gpsSettings: Boolean) {
         context.dataStore.edit {
             it[GPS_SETTINGS] = gpsSettings
+        }
+    }
+
+    val notificationSettingsFlow = context.dataStore.data.map {
+        it[NOTIFICATION] ?: false
+    }
+
+    suspend fun setNotificationSettings(gpsSettings: Boolean) {
+        context.dataStore.edit {
+            it[NOTIFICATION] = gpsSettings
         }
     }
 

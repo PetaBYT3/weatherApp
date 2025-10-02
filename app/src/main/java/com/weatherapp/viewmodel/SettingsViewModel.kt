@@ -22,6 +22,12 @@ class SettingsViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
+            settingsRepository.notificationSetting.collect { notification ->
+                _uiState.update { it.copy(notification = notification) }
+            }
+        }
+
+        viewModelScope.launch {
             settingsRepository.degree.collect {
                 _uiState.value = _uiState.value.copy(
                     degree = it
@@ -46,6 +52,11 @@ class SettingsViewModel @Inject constructor(
 
     fun onAction(action: SettingsAction) {
         when(action) {
+            is SettingsAction.SetNotification -> {
+                viewModelScope.launch {
+                    settingsRepository.setNotificationSetting(action.notification)
+                }
+            }
             is SettingsAction.OpenCountDownBottomSheet -> {
                 _uiState.value = _uiState.value.copy(
                     bottomSheetCountDown = action.isOpen

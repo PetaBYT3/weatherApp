@@ -32,26 +32,41 @@ import androidx.compose.material.icons.rounded.Compress
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.LocationOn
 import androidx.compose.material.icons.rounded.Refresh
+import androidx.compose.material.icons.rounded.Send
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.WaterDrop
 import androidx.compose.material.icons.rounded.WindPower
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconToggleButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -59,16 +74,20 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.valentinilk.shimmer.shimmer
+import com.weatherapp.R
 import com.weatherapp.intent.HomeAction
+import com.weatherapp.intent.SettingsAction
 import com.weatherapp.ui.theme.WeatherAppTheme
 import com.weatherapp.utilities.ShimmerPlaceHolder
 import com.weatherapp.state.HomeState
 import com.weatherapp.utilities.CustomProgressBar
 import com.weatherapp.utilities.TextContent
+import com.weatherapp.utilities.TextTitle
 import com.weatherapp.utilities.VerticalProgressBar
 import com.weatherapp.viewmodel.HomeViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @ExperimentalMaterial3Api
 @AndroidEntryPoint
@@ -91,6 +110,10 @@ private fun MainScreenCore(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     MainScreen(uiState = uiState, onAction = viewModel::onAction)
+
+    if (uiState.bottomSheetGemini) {
+        BottomSheetGemini(uiState = uiState, onAction = viewModel::onAction)
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -473,7 +496,20 @@ private fun ContentScreen(
                 ShimmerPlaceHolder()
             }
         }
-
+        Spacer(modifier = Modifier.height(10.dp))
+        Button(
+            modifier = Modifier.fillMaxWidth(),
+            onClick = {
+                onAction(HomeAction.OpenBottomSheetGemini(true))
+            }
+        ) {
+            Text(text = "Summarize With Gemini AI")
+            Spacer(modifier = Modifier.width(5.dp))
+            Icon(
+                painter = painterResource(R.drawable.gemini),
+                contentDescription = null
+            )
+        }
         Spacer(modifier = Modifier.height(10.dp))
         Card(
             modifier = Modifier.clip(RoundedCornerShape(50)),
@@ -580,5 +616,79 @@ private fun ContentScreen(
             ShimmerPlaceHolder()
         }
         Spacer(modifier = Modifier.height(10.dp))
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun BottomSheetGemini(
+    uiState: HomeState,
+    onAction: (HomeAction) -> Unit
+) {
+    val sheetState = rememberModalBottomSheetState(
+        skipPartiallyExpanded = true
+    )
+
+    LaunchedEffect(uiState.weatherData) {
+        if (uiState.weatherData != null) {
+            onAction(HomeAction.GetGeminiResponse)
+        }
+    }
+
+    ModalBottomSheet(
+        sheetState = sheetState,
+        onDismissRequest = {
+            onAction(HomeAction.OpenBottomSheetGemini(false))
+        }
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 15.dp, vertical = 0.dp)
+                .animateContentSize()
+        ) {
+            Text(
+                text = "Gemini AI",
+                style = MaterialTheme.typography.titleLarge,
+                modifier = Modifier.padding(bottom = 15.dp)
+            )
+            TextTitle(text = "Response")
+            Spacer(Modifier.height(10.dp))
+            if (uiState.geminiResponse != null) {
+                val scrollState = rememberScrollState()
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .animateContentSize()
+                        .clip(RoundedCornerShape(20.dp))
+                        .verticalScroll(scrollState, true),
+                ) {
+                    Column(
+                        modifier = Modifier.fillMaxSize().padding(15.dp),
+                        verticalArrangement = Arrangement.Center,
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        TextContent(uiState.geminiResponse)
+                    }
+                }
+            } else {
+                ShimmerPlaceHolder()
+            }
+            Spacer(Modifier.height(20.dp))
+            Button(
+                modifier = Modifier.fillMaxWidth(),
+                onClick = {
+                    onAction(HomeAction.GetGeminiResponse)
+                }
+            ) {
+                Text(text = "Regenerate Response")
+                Spacer(Modifier.width(10.dp))
+                Icon(
+                    imageVector = Icons.Rounded.Refresh,
+                    contentDescription = null
+                )
+            }
+            Spacer(Modifier.height(20.dp))
+        }
     }
 }

@@ -17,5 +17,8 @@ data class HomeState(
     val locationWithWeatherList: List<LocationWithWeather> = emptyList(),
     val isCountDownStart: Boolean? = false,
     val countDownProgress: Float? = 0f,
-    val countDownTimer: Int? = 0
+    val countDownTimer: Int? = 0,
+
+    val bottomSheetGemini: Boolean = false,
+    val geminiResponse: String? = null
 )

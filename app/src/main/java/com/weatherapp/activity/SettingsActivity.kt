@@ -2,12 +2,13 @@
 
 package com.weatherapp.activity
 
-import android.content.Intent
+import android.annotation.SuppressLint
+import android.os.Build
 import android.os.Bundle
-import android.widget.Space
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,7 +19,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -28,11 +28,13 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.AcUnit
+import androidx.compose.material.icons.rounded.Api
 import androidx.compose.material.icons.rounded.ArrowDownward
 import androidx.compose.material.icons.rounded.ArrowForward
 import androidx.compose.material.icons.rounded.ContentCopy
 import androidx.compose.material.icons.rounded.Email
 import androidx.compose.material.icons.rounded.Info
+import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material.icons.rounded.Timer
 import androidx.compose.material.icons.rounded.WindPower
 import androidx.compose.material3.Button
@@ -51,6 +53,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.rememberSliderState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
@@ -65,20 +68,25 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.isGranted
+import com.google.accompanist.permissions.rememberPermissionState
+import com.google.accompanist.permissions.shouldShowRationale
+import com.weatherapp.R
+import com.weatherapp.dataclass.ContactDeveloper
 import com.weatherapp.dataclass.Settings
+import com.weatherapp.dataclass.UsedTechnology
 import com.weatherapp.intent.SettingsAction
 import com.weatherapp.state.SettingsState
 import com.weatherapp.ui.theme.WeatherAppTheme
+import com.weatherapp.utilities.NotificationPermissionHandler
 import com.weatherapp.utilities.TextContent
 import com.weatherapp.utilities.TextTitle
+import com.weatherapp.utilities.copyToClipboard
+import com.weatherapp.utilities.intentApp
 import com.weatherapp.viewmodel.SettingsViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
-import androidx.core.net.toUri
-import com.google.android.gms.common.internal.StringResourceValueReader
-import com.weatherapp.R
-import com.weatherapp.utilities.copyToClipboard
-import com.weatherapp.utilities.intentApp
 
 @AndroidEntryPoint
 class SettingsActivity : ComponentActivity() {
@@ -155,6 +163,9 @@ private fun MainScreen(
     }
 }
 
+@SuppressLint("PermissionLaunchedDuringComposition")
+@RequiresApi(Build.VERSION_CODES.TIRAMISU)
+@OptIn(ExperimentalPermissionsApi::class)
 @Composable
 private fun ContentScreen(
     modifier: Modifier = Modifier,
@@ -166,34 +177,62 @@ private fun ContentScreen(
             .padding(horizontal = 15.dp)
             .fillMaxWidth()
     ) {
+        val permissionState = rememberPermissionState(
+            permission = android.Manifest.permission.POST_NOTIFICATIONS
+        )
+
         val settingsList = listOf(
+            Settings(
+                icon = Icons.Rounded.Notifications,
+                title = "Notification",
+                description = "Allow notification permission to get weather info in notification or status bar",
+                isSwitch = true,
+                isChecked = uiState.notification,
+                onSwitchChange = {
+                    if (uiState.notification) {
+                        when {
+                            permissionState.status.isGranted -> {
+                                onAction(SettingsAction.SetNotification(true))
+                            }
+                            permissionState.status.shouldShowRationale -> {
+
+                            }
+                            !permissionState.status.shouldShowRationale -> {
+                                permissionState.launchPermissionRequest()
+                            }
+                        }
+                    } else {
+                        onAction(SettingsAction.SetNotification(false))
+                    }
+                }
+            ),
             Settings(
                 icon = Icons.Rounded.AcUnit,
                 title = "Degree",
                 description = uiState.degree.toString(),
                 isBottomSheet = true,
-                openBottomSheet = { onAction(SettingsAction.OpenDegreeBottomSheet(true)) },
+                onItemClick = { onAction(SettingsAction.OpenDegreeBottomSheet(true)) },
             ),
             Settings(
                 icon = Icons.Rounded.WindPower,
                 title = "Wind",
                 description = uiState.wind.toString(),
                 isBottomSheet = true,
-                openBottomSheet = { onAction(SettingsAction.OpenWindBottomSheet(true)) },
+                onItemClick = { onAction(SettingsAction.OpenWindBottomSheet(true)) },
             ),
             Settings(
                 icon = Icons.Rounded.Timer,
                 title = "Refresh Weather Count Down",
                 description = "${uiState.refreshCountDown}s",
                 isBottomSheet = true,
-                openBottomSheet = { onAction(SettingsAction.OpenCountDownBottomSheet(true)) },
+                onItemClick = { onAction(SettingsAction.OpenCountDownBottomSheet(true)) },
             ),
             Settings(
                 icon = Icons.Rounded.Info,
                 title = "Info",
                 description = "About app",
                 isBottomSheet = true,
-                openBottomSheet = { onAction(SettingsAction.OpenAboutBottomSheet(true)) },
+                onItemClick = { onAction(SettingsAction.OpenAboutBottomSheet(true)) },
             )
         )
         LazyColumn(
@@ -203,7 +242,7 @@ private fun ContentScreen(
                 Card(
                     modifier = Modifier.clip(RoundedCornerShape(20.dp)).fillMaxWidth(),
                     onClick = {
-                        settingsOption.onItemClick
+                        settingsOption.onItemClick?.invoke()
                     }
                 ) {
                     Row(
@@ -229,23 +268,17 @@ private fun ContentScreen(
                         ) {
                             if (settingsOption.isSwitch) {
                                 Switch(
-                                    checked = true,
+                                    checked = settingsOption.isChecked,
                                     onCheckedChange = {
                                         settingsOption.onSwitchChange
                                     }
                                 )
                             }
                             if (settingsOption.isBottomSheet) {
-                                IconButton(
-                                    onClick = {
-                                        settingsOption.openBottomSheet?.invoke()
-                                    }
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Rounded.ArrowDownward,
-                                        contentDescription = null
-                                    )
-                                }
+                                Icon(
+                                    imageVector = Icons.Rounded.ArrowDownward,
+                                    contentDescription = null
+                                )
                             }
                         }
                     }
@@ -463,6 +496,108 @@ private fun BottomSheetAbout(
     val context = LocalContext.current
     val packageManager = context.packageManager
 
+    val usedTechnologyList = listOf(
+        UsedTechnology(
+            icon = R.drawable.kotlin,
+            title = "Kotlin"
+        ),
+        UsedTechnology(
+            icon = R.drawable.jetpackcompose,
+            title = "Jetpack Compose"
+        ),
+        UsedTechnology(
+            icon = R.drawable.xml,
+            title = "XML"
+        )
+    )
+    val poweredByList = listOf(
+        ContactDeveloper(
+            iconVector = Icons.Rounded.Api,
+            title = "Weather API",
+            actionIcon = Icons.Rounded.ArrowForward,
+            onItemClick = {
+                intentApp(
+                    webUrl = "https://www.weatherapi.com/",
+                    appPackage = "com.android.chrome",
+                    context = context
+                )
+            }
+        ),
+        ContactDeveloper(
+            icon = R.drawable.gemini,
+            title = "Gemini Generative AI"
+        )
+    )
+
+    val contactDeveloperList = listOf(
+        ContactDeveloper(
+            iconVector = Icons.Rounded.Email,
+            title = "E-Mail",
+            description = "andreahussanini.2103@gmail.com",
+            actionIcon = Icons.Rounded.ContentCopy,
+            onItemClick = {
+                copyToClipboard(
+                    label = "E-Mail",
+                    text = "andreahussanini.2103@gmail.com",
+                    toast = "E-Mail Copied !",
+                    context = context
+                )
+            }
+        ),
+        ContactDeveloper(
+            icon = R.drawable.linkedin,
+            title = "LinkedIn",
+            description = "https://www.linkedin.com/in/andrea-hussanini-274223218/",
+            actionIcon = Icons.Rounded.ArrowForward,
+            onItemClick = {
+                intentApp(
+                    webUrl = "https://www.linkedin.com/in/andrea-hussanini-274223218/",
+                    appPackage = "com.linkedin.android",
+                    context = context
+                )
+            }
+        ),
+        ContactDeveloper(
+            icon = R.drawable.github,
+            title = "GitHub",
+            description = "https://github.com/PetaBYT3",
+            actionIcon = Icons.Rounded.ArrowForward,
+            onItemClick = {
+                intentApp(
+                    webUrl = "https://github.com/PetaBYT3",
+                    appPackage = "com.github.android",
+                    context = context
+                )
+            }
+        ),
+        ContactDeveloper(
+            icon = R.drawable.instagram,
+            title = "Instagram",
+            description = "https://www.instagram.com/_andre.kt/",
+            actionIcon = Icons.Rounded.ArrowForward,
+            onItemClick = {
+                intentApp(
+                    webUrl = "https://www.instagram.com/_andre.kt/",
+                    appPackage = "com.instagram.android",
+                    context = context
+                )
+            }
+        ),
+        ContactDeveloper(
+            icon = R.drawable.tiktok,
+            title = "TikTok",
+            description = "https://www.tiktok.com/@xliicxiv",
+            actionIcon = Icons.Rounded.ArrowForward,
+            onItemClick = {
+                intentApp(
+                    webUrl = "https://www.tiktok.com/@xliicxiv",
+                    appPackage = "com.ss.android.ugc.trill",
+                    context = context
+                )
+            }
+        )
+    )
+
     ModalBottomSheet(
         sheetState = sheetState,
         onDismissRequest = {
@@ -482,19 +617,55 @@ private fun BottomSheetAbout(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .weight(1f)
                     .verticalScroll(scrollState, true)
             ) {
-                TextTitle(text = "Used Technology")
+                TextTitle(text = "Powered By")
                 Spacer(Modifier.height(10.dp))
-                Card {
-
+                poweredByList.forEach { poweredBy ->
+                    Card(
+                        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)),
+                        onClick = { poweredBy.onItemClick?.invoke() }
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(15.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            if (poweredBy.icon != null) {
+                                Icon(
+                                    painter = painterResource(poweredBy.icon),
+                                    contentDescription = null
+                                )
+                            }
+                            if (poweredBy.iconVector != null) {
+                                Icon(
+                                    imageVector = poweredBy.iconVector,
+                                    contentDescription = null
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(15.dp))
+                            Text(
+                                text = poweredBy.title,
+                                style = MaterialTheme.typography.bodyLarge
+                            )
+                            Spacer(Modifier.weight(1f))
+                            if (poweredBy.actionIcon != null) {
+                                Icon(
+                                    imageVector = poweredBy.actionIcon,
+                                    contentDescription = null
+                                )
+                            }
+                        }
+                    }
+                    Spacer(Modifier.height(10.dp))
                 }
 
+                Spacer(Modifier.height(10.dp))
                 TextTitle(text = "Used Technology")
                 Spacer(Modifier.height(10.dp))
-                Row {
+                usedTechnologyList.forEach { usedTechnology ->
                     Card(
-                        modifier = Modifier.clip(RoundedCornerShape(20.dp)),
+                        modifier = Modifier.clip(RoundedCornerShape(20.dp)).fillMaxWidth(),
                     ) {
                         Row(
                             modifier = Modifier
@@ -502,187 +673,52 @@ private fun BottomSheetAbout(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Icon(
-                                painter = painterResource(R.drawable.kotlin),
+                                painter = painterResource(usedTechnology.icon),
                                 contentDescription = null
                             )
                             Spacer(Modifier.width(10.dp))
-                            TextContent(text = "Kotlin")
+                            TextContent(text = usedTechnology.title)
                         }
                     }
-                    Spacer(Modifier.width(10.dp))
-                    Card(
-                        modifier = Modifier.clip(RoundedCornerShape(20.dp)),
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .padding(15.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                painter = painterResource(R.drawable.jetpackcompose),
-                                contentDescription = null
-                            )
-                            Spacer(Modifier.width(10.dp))
-                            TextContent(text = "Jetpack Compose")
-                        }
-                    }
+                    Spacer(Modifier.height(10.dp))
                 }
-                Spacer(Modifier.height(20.dp))
+                Spacer(Modifier.height(10.dp))
                 TextTitle(text = "Contact Developer")
                 Spacer(Modifier.height(10.dp))
-                Card(
-                    modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)),
-                    onClick = {
-                        copyToClipboard(
-                            label = "E-Mail",
-                            text = "andreahussanini.2103@gmail.com",
-                            context = context
-                        )
-                    }
-                ) {
-                    Row(
-                        modifier = Modifier.padding(15.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                contactDeveloperList.forEach { contactDeveloper ->
+                    Card(
+                        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)),
+                        onClick = { contactDeveloper.onItemClick?.invoke() }
                     ) {
-                        Icon(
-                            imageVector = Icons.Rounded.Email,
-                            contentDescription = null
-                        )
-                        Spacer(modifier = Modifier.width(15.dp))
-                        Text(
-                            text = "E-Mail",
-                            style = MaterialTheme.typography.bodyLarge
-                        )
-                        Spacer(Modifier.weight(1f))
-                        Icon(
-                            imageVector = Icons.Rounded.ContentCopy,
-                            contentDescription = null
-                        )
+                        Row(
+                            modifier = Modifier.padding(15.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            if (contactDeveloper.icon != null) {
+                                Icon(
+                                    painter = painterResource(contactDeveloper.icon),
+                                    contentDescription = null
+                                )
+                            }
+                            if (contactDeveloper.iconVector != null) {
+                                Icon(
+                                    imageVector = contactDeveloper.iconVector,
+                                    contentDescription = null
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(15.dp))
+                            Text(
+                                text = contactDeveloper.title,
+                                style = MaterialTheme.typography.bodyLarge
+                            )
+                            Spacer(Modifier.weight(1f))
+                            Icon(
+                                imageVector = contactDeveloper.actionIcon!!,
+                                contentDescription = null
+                            )
+                        }
                     }
-                }
-                Spacer(Modifier.height(10.dp))
-                Card(
-                    modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)),
-                    onClick = {
-                        intentApp(
-                            webUrl = "https://www.linkedin.com/in/andrea-hussanini-274223218/",
-                            appPackage = "com.linkedin.android",
-                            context = context
-                        )
-                    }
-                ) {
-                    Row(
-                        modifier = Modifier.padding(15.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            painter = painterResource(R.drawable.linkedin),
-                            contentDescription = null
-                        )
-                        Spacer(modifier = Modifier.width(15.dp))
-                        Text(
-                            text = "LinkedIn",
-                            style = MaterialTheme.typography.bodyLarge
-                        )
-                        Spacer(Modifier.weight(1f))
-                        Icon(
-                            imageVector = Icons.Rounded.ArrowForward,
-                            contentDescription = null
-                        )
-                    }
-                }
-                Spacer(Modifier.height(10.dp))
-                Card(
-                    modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)),
-                    onClick = {
-                        intentApp(
-                            webUrl = "https://github.com/PetaBYT3",
-                            appPackage = "com.github.android",
-                            context = context
-                        )
-                    }
-                ) {
-                    Row(
-                        modifier = Modifier.padding(15.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            painter = painterResource(R.drawable.github),
-                            contentDescription = null
-                        )
-                        Spacer(modifier = Modifier.width(15.dp))
-                        Text(
-                            text = "GitHub",
-                            style = MaterialTheme.typography.bodyLarge
-                        )
-                        Spacer(Modifier.weight(1f))
-                        Icon(
-                            imageVector = Icons.Rounded.ArrowForward,
-                            contentDescription = null
-                        )
-                    }
-                }
-                Spacer(Modifier.height(10.dp))
-                Card(
-                    modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)),
-                    onClick = {
-                        intentApp(
-                            webUrl = "https://www.instagram.com/_andre.kt/",
-                            appPackage = "com.instagram.lite",
-                            context = context
-                        )
-                    }
-                ) {
-                    Row(
-                        modifier = Modifier.padding(15.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            painter = painterResource(R.drawable.instagram),
-                            contentDescription = null
-                        )
-                        Spacer(modifier = Modifier.width(15.dp))
-                        Text(
-                            text = "Instagram",
-                            style = MaterialTheme.typography.bodyLarge
-                        )
-                        Spacer(Modifier.weight(1f))
-                        Icon(
-                            imageVector = Icons.Rounded.ArrowForward,
-                            contentDescription = null
-                        )
-                    }
-                }
-                Spacer(Modifier.height(10.dp))
-                Card(
-                    modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)),
-                    onClick = {
-                        intentApp(
-                            webUrl = "https://www.tiktok.com/@xliicxiv",
-                            appPackage = "com.ss.android.ugc.trill",
-                            context = context
-                        )
-                    }
-                ) {
-                    Row(
-                        modifier = Modifier.padding(15.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            painter = painterResource(R.drawable.tiktok),
-                            contentDescription = null
-                        )
-                        Spacer(modifier = Modifier.width(15.dp))
-                        Text(
-                            text = "TikTok",
-                            style = MaterialTheme.typography.bodyLarge
-                        )
-                        Spacer(Modifier.weight(1f))
-                        Icon(
-                            imageVector = Icons.Rounded.ArrowForward,
-                            contentDescription = null
-                        )
-                    }
+                    Spacer(Modifier.height(10.dp))
                 }
             }
             Button(

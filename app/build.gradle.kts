@@ -86,4 +86,7 @@ dependencies {
 
     //Icon
     implementation(libs.androidx.compose.material.icons.extended.android)
+
+    //Gemini AI
+    implementation(libs.generativeai)
 }

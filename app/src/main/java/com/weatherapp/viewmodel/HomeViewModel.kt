@@ -5,6 +5,7 @@ import android.Manifest.permission.ACCESS_FINE_LOCATION
 import androidx.annotation.RequiresPermission
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.ai.client.generativeai.GenerativeModel
 import com.weatherapp.dataclass.LocationWithWeather
 import com.weatherapp.intent.HomeAction
 import com.weatherapp.repository.LocationRepository
@@ -152,6 +153,37 @@ class HomeViewModel @Inject constructor(
             is HomeAction.CountDownTimer -> {
                 viewModelScope.launch {
                     _uiState.update { it.copy(countDownTimer = action.countDownTimer) }
+                }
+            }
+            is HomeAction.OpenBottomSheetGemini -> {
+                viewModelScope.launch {
+                    _uiState.update { it.copy(bottomSheetGemini = action.isOpen) }
+                }
+            }
+            is HomeAction.GetGeminiResponse -> {
+                viewModelScope.launch {
+                    _uiState.update { it.copy(geminiResponse = null) }
+
+                    val generativeModel = GenerativeModel(
+                        modelName = "gemini-2.5-flash-lite",
+                        apiKey = "AIzaSyDyFbEcyWh9oW0ZI31-f6VY8SfNTI0p_ss"
+                    )
+                    val weatherData = _uiState.value.weatherData
+
+                    val promptWeatherContext = buildString {
+                        append(weatherData)
+                        append("\n")
+                        append("Can You Summarize Weather Data Above Into A Readable Paragraph")
+                    }
+
+                    if (weatherData != null) {
+                        try {
+                            val response = generativeModel.generateContent(promptWeatherContext)
+                            _uiState.update { it.copy(geminiResponse = response.text) }
+                        } catch (e: Exception) {
+                            _uiState.update { it.copy(geminiResponse = e.message) }
+                        }
+                    }
                 }
             }
         }

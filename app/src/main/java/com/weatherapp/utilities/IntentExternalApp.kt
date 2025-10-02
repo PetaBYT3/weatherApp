@@ -29,6 +29,7 @@ fun intentApp(
 fun copyToClipboard(
     label: String,
     text: String,
+    toast: String,
     context: Context
 ) {
     val clipBoardManager = context.getSystemService(
@@ -42,5 +43,5 @@ fun copyToClipboard(
 
     clipBoardManager.setPrimaryClip(clipData)
 
-    Toast.makeText(context, label, Toast.LENGTH_LONG).show()
+    Toast.makeText(context, toast, Toast.LENGTH_LONG).show()
 }
