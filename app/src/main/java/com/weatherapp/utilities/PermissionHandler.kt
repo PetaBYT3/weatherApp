@@ -9,29 +9,12 @@ import com.google.accompanist.permissions.rememberPermissionState
 import com.google.accompanist.permissions.shouldShowRationale
 import com.weatherapp.intent.LocationAction
 
-@OptIn(ExperimentalPermissionsApi::class)
-@Composable
-fun NotificationPermissionHandler(
+fun notificationPermissionHandler(
     onPermissionGranted: () -> Unit,
-    onPermissionDenied: () -> Unit
+    onPermissionAsked: () -> Unit
 ) {
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-        val permissionState = rememberPermissionState(
-            permission = android.Manifest.permission.POST_NOTIFICATIONS
-        )
-        when {
-            permissionState.status.isGranted -> {
-                onPermissionGranted()
-            }
-            permissionState.status.shouldShowRationale -> {
-                onPermissionDenied()
-            }
-            !permissionState.status.shouldShowRationale -> {
-                LaunchedEffect(Unit) {
-                    permissionState.launchPermissionRequest()
-                }
-            }
-        }
+        onPermissionAsked
     } else {
         onPermissionGranted()
     }

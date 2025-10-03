@@ -28,6 +28,12 @@ class SettingsViewModel @Inject constructor(
         }
 
         viewModelScope.launch {
+            settingsRepository.notificationOnBoot.collect { notificationOnBoot ->
+                _uiState.update { it.copy(notificationOnBoot = notificationOnBoot) }
+            }
+        }
+
+        viewModelScope.launch {
             settingsRepository.degree.collect {
                 _uiState.value = _uiState.value.copy(
                     degree = it
@@ -52,9 +58,19 @@ class SettingsViewModel @Inject constructor(
 
     fun onAction(action: SettingsAction) {
         when(action) {
+            is SettingsAction.OpenNotificationBottomSheet -> {
+                viewModelScope.launch {
+                    _uiState.update { it.copy(bottomSheetNotification = action.isOpen) }
+                }
+            }
             is SettingsAction.SetNotification -> {
                 viewModelScope.launch {
                     settingsRepository.setNotificationSetting(action.notification)
+                }
+            }
+            is SettingsAction.SetNotificationOnBoot -> {
+                viewModelScope.launch {
+                    settingsRepository.setNotificationOnBoot(action.notificationOnBoot)
                 }
             }
             is SettingsAction.OpenCountDownBottomSheet -> {
@@ -95,6 +111,16 @@ class SettingsViewModel @Inject constructor(
                         it.copy(bottomSheetAbout = action.isOpen)
                     }
                 }
+            }
+            is SettingsAction.OpenContactDevBottomSheet -> {
+                viewModelScope.launch {
+                    _uiState.update {
+                        it.copy(bottomSheetContactDev = action.isOpen)
+                    }
+                }
+            }
+            is SettingsAction.OpenAboutAppBottomSheet -> {
+
             }
         }
     }

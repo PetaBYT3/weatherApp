@@ -73,6 +73,9 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
+import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.isGranted
+import com.google.accompanist.permissions.rememberPermissionState
 import com.valentinilk.shimmer.shimmer
 import com.weatherapp.R
 import com.weatherapp.intent.HomeAction
@@ -163,6 +166,7 @@ private fun MainScreen(
     }
 }
 
+@OptIn(ExperimentalPermissionsApi::class)
 @Composable
 private fun ContentScreen(
     modifier: Modifier = Modifier,
@@ -170,10 +174,17 @@ private fun ContentScreen(
     onAction: (HomeAction) -> Unit
 ) {
     val scrollState = rememberScrollState()
+    val locationPermission = rememberPermissionState(
+        permission = android.Manifest.permission.ACCESS_FINE_LOCATION
+    )
 
     onAction(HomeAction.GetLocation)
 
-    onAction(HomeAction.GetCoordinate)
+    LaunchedEffect(locationPermission, uiState.gpsSettings) {
+        if (uiState.gpsSettings && locationPermission.status.isGranted) {
+            onAction(HomeAction.GetCoordinate)
+        }
+    }
 
     LaunchedEffect(uiState.refreshWeatherCountDown) {
         if (uiState.refreshWeatherCountDown != null) {
@@ -501,7 +512,8 @@ private fun ContentScreen(
             modifier = Modifier.fillMaxWidth(),
             onClick = {
                 onAction(HomeAction.OpenBottomSheetGemini(true))
-            }
+            },
+            enabled = uiState.weatherData != null
         ) {
             Text(text = "Summarize With Gemini AI")
             Spacer(modifier = Modifier.width(5.dp))
@@ -629,12 +641,6 @@ private fun BottomSheetGemini(
         skipPartiallyExpanded = true
     )
 
-    LaunchedEffect(uiState.weatherData) {
-        if (uiState.weatherData != null) {
-            onAction(HomeAction.GetGeminiResponse)
-        }
-    }
-
     ModalBottomSheet(
         sheetState = sheetState,
         onDismissRequest = {
@@ -654,34 +660,55 @@ private fun BottomSheetGemini(
             )
             TextTitle(text = "Response")
             Spacer(Modifier.height(10.dp))
-            if (uiState.geminiResponse != null) {
-                val scrollState = rememberScrollState()
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .animateContentSize()
-                        .clip(RoundedCornerShape(20.dp))
-                        .verticalScroll(scrollState, true),
-                ) {
-                    Column(
-                        modifier = Modifier.fillMaxSize().padding(15.dp),
-                        verticalArrangement = Arrangement.Center,
-                        horizontalAlignment = Alignment.CenterHorizontally
+            Box() {
+                if (uiState.initialBottomSheetGemini) {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(100.dp)
+                            .animateContentSize()
+                            .clip(RoundedCornerShape(20.dp))
                     ) {
-                        TextContent(uiState.geminiResponse)
+                        Column(
+                            modifier = Modifier.fillMaxSize().padding(15.dp),
+                            verticalArrangement = Arrangement.Center,
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            TextContent("Response Will Appear Here")
+                        }
+                    }
+                } else {
+                    if (uiState.geminiResponse != null) {
+                        val scrollState = rememberScrollState()
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .animateContentSize()
+                                .clip(RoundedCornerShape(20.dp))
+                                .verticalScroll(scrollState, true),
+                        ) {
+                            Column(
+                                modifier = Modifier.fillMaxSize().padding(15.dp),
+                                verticalArrangement = Arrangement.Center,
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                TextContent(uiState.geminiResponse)
+                            }
+                        }
+                    } else {
+                        ShimmerPlaceHolder()
                     }
                 }
-            } else {
-                ShimmerPlaceHolder()
             }
-            Spacer(Modifier.height(20.dp))
+                Spacer(Modifier.height(20.dp))
             Button(
                 modifier = Modifier.fillMaxWidth(),
                 onClick = {
                     onAction(HomeAction.GetGeminiResponse)
+                    onAction(HomeAction.InitialBottomSheetGemini(false))
                 }
             ) {
-                Text(text = "Regenerate Response")
+                Text(text = "Generate Summarize Response")
                 Spacer(Modifier.width(10.dp))
                 Icon(
                     imageVector = Icons.Rounded.Refresh,

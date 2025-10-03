@@ -6,7 +6,6 @@ import com.weatherapp.roomdata.dataclass.Location
 sealed interface LocationAction {
     data class GpsSettings(val newGpsSettings: Boolean) : LocationAction
 
-
     //Insert Action
     data object OpenBottomSheetInput : LocationAction
     data object DismissBottomSheetInput : LocationAction

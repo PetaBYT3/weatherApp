@@ -19,6 +19,7 @@ data class HomeState(
     val countDownProgress: Float? = 0f,
     val countDownTimer: Int? = 0,
 
+    val initialBottomSheetGemini: Boolean = true,
     val bottomSheetGemini: Boolean = false,
     val geminiResponse: String? = null
 )

@@ -11,6 +11,11 @@ class SettingsRepository @Inject constructor(
         dataStore.setNotificationSettings(newNotificationSetting)
     }
 
+    val notificationOnBoot = dataStore.notificationOnBoot
+    suspend fun setNotificationOnBoot(newNotificationOnBoot: Boolean) {
+        dataStore.setNotificationOnBoot(newNotificationOnBoot)
+    }
+
     val degree = dataStore.degree
     suspend fun setDegree(newDegree: String) {
         dataStore.setDegree(newDegree)

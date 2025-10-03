@@ -2,10 +2,12 @@ package com.weatherapp.viewmodel
 
 import android.Manifest.permission.ACCESS_COARSE_LOCATION
 import android.Manifest.permission.ACCESS_FINE_LOCATION
+import android.annotation.SuppressLint
 import androidx.annotation.RequiresPermission
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.ai.client.generativeai.GenerativeModel
+import com.weatherapp.BuildConfig
 import com.weatherapp.dataclass.LocationWithWeather
 import com.weatherapp.intent.HomeAction
 import com.weatherapp.repository.LocationRepository
@@ -82,6 +84,7 @@ class HomeViewModel @Inject constructor(
         }
     }
 
+    @SuppressLint("SecretInSource")
     @RequiresPermission(allOf = [ACCESS_FINE_LOCATION, ACCESS_COARSE_LOCATION])
     fun onAction(action: HomeAction) {
         when (action) {
@@ -155,6 +158,11 @@ class HomeViewModel @Inject constructor(
                     _uiState.update { it.copy(countDownTimer = action.countDownTimer) }
                 }
             }
+            is HomeAction.InitialBottomSheetGemini -> {
+                viewModelScope.launch {
+                    _uiState.update { it.copy(initialBottomSheetGemini = action.isInitial) }
+                }
+            }
             is HomeAction.OpenBottomSheetGemini -> {
                 viewModelScope.launch {
                     _uiState.update { it.copy(bottomSheetGemini = action.isOpen) }
@@ -166,7 +174,7 @@ class HomeViewModel @Inject constructor(
 
                     val generativeModel = GenerativeModel(
                         modelName = "gemini-2.5-flash-lite",
-                        apiKey = "AIzaSyDyFbEcyWh9oW0ZI31-f6VY8SfNTI0p_ss"
+                        apiKey = BuildConfig.GEMINI_API_KEY
                     )
                     val weatherData = _uiState.value.weatherData
 

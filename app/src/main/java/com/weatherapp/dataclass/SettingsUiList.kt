@@ -9,7 +9,7 @@ data class Settings(
     val description: String,
     val isSwitch: Boolean = false,
     val isChecked: Boolean = false,
-    val onSwitchChange: @Composable (() -> Unit)? = null,
+    val onSwitchChange: (Boolean) -> Unit = {},
 
     //BottomSheet
     val isBottomSheet: Boolean = false,

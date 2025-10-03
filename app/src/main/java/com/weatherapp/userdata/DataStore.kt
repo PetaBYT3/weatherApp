@@ -19,38 +19,45 @@ val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "se
 class DataStore(private val context: Context) {
 
     companion object {
-        val GPS_SETTINGS = booleanPreferencesKey("gps_settings")
         val NOTIFICATION = booleanPreferencesKey("notification")
+        val NOTIFICATION_ON_BOOT = booleanPreferencesKey("show_notification_on_boot")
+        val GPS_SETTINGS = booleanPreferencesKey("gps_settings")
         val SELECTED_LOCATION = intPreferencesKey("selected_location")
         val WIND = stringPreferencesKey("wind")
         val DEGREE = stringPreferencesKey("degree")
         val REFRESH_COUNT_DOWN = intPreferencesKey("refresh_count_down")
     }
 
-    val gpsSettingsFlow = context.dataStore.data.map {
-        it[GPS_SETTINGS] ?: false
-    }
-
-    suspend fun setGpsSettings(gpsSettings: Boolean) {
-        context.dataStore.edit {
-            it[GPS_SETTINGS] = gpsSettings
-        }
-    }
-
     val notificationSettingsFlow = context.dataStore.data.map {
         it[NOTIFICATION] ?: false
     }
-
     suspend fun setNotificationSettings(gpsSettings: Boolean) {
         context.dataStore.edit {
             it[NOTIFICATION] = gpsSettings
         }
     }
 
+    val notificationOnBoot = context.dataStore.data.map {
+        it[NOTIFICATION_ON_BOOT] ?: false
+    }
+    suspend fun setNotificationOnBoot(gpsSettings: Boolean) {
+        context.dataStore.edit {
+            it[NOTIFICATION_ON_BOOT] = gpsSettings
+        }
+    }
+
+    val gpsSettingsFlow = context.dataStore.data.map {
+        it[GPS_SETTINGS] ?: false
+    }
+    suspend fun setGpsSettings(gpsSettings: Boolean) {
+        context.dataStore.edit {
+            it[GPS_SETTINGS] = gpsSettings
+        }
+    }
+
     val selectedLocation = context.dataStore.data.map {
         it[SELECTED_LOCATION] ?: 0
     }
-
     suspend fun setSelectedLocation(selectedLocation: Int) {
         context.dataStore.edit {
             it[SELECTED_LOCATION] = selectedLocation
@@ -60,7 +67,6 @@ class DataStore(private val context: Context) {
     val degree = context.dataStore.data.map {
         it[DEGREE] ?: "Celcius"
     }
-
     suspend fun setDegree(degree: String) {
         context.dataStore.edit {
             it[DEGREE] = degree
@@ -70,7 +76,6 @@ class DataStore(private val context: Context) {
     val wind = context.dataStore.data.map {
         it[WIND] ?: "MPH"
     }
-
     suspend fun setWind(wind: String) {
         context.dataStore.edit {
             it[WIND] = wind
@@ -80,7 +85,6 @@ class DataStore(private val context: Context) {
     val refreshCountDown = context.dataStore.data.map {
         it[REFRESH_COUNT_DOWN] ?: 5
     }
-
     suspend fun setRefreshCountDown(refreshCountDown: Int) {
         context.dataStore.edit {
             it[REFRESH_COUNT_DOWN] = refreshCountDown

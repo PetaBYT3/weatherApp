@@ -5,6 +5,7 @@ package com.weatherapp.activity
 import android.annotation.SuppressLint
 import android.os.Build
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -19,6 +20,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -34,7 +36,12 @@ import androidx.compose.material.icons.rounded.ArrowForward
 import androidx.compose.material.icons.rounded.ContentCopy
 import androidx.compose.material.icons.rounded.Email
 import androidx.compose.material.icons.rounded.Info
+import androidx.compose.material.icons.rounded.KeyboardArrowDown
+import androidx.compose.material.icons.rounded.LocationOn
 import androidx.compose.material.icons.rounded.Notifications
+import androidx.compose.material.icons.rounded.Numbers
+import androidx.compose.material.icons.rounded.Person
+import androidx.compose.material.icons.rounded.PowerSettingsNew
 import androidx.compose.material.icons.rounded.Timer
 import androidx.compose.material.icons.rounded.WindPower
 import androidx.compose.material3.Button
@@ -47,6 +54,8 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -56,6 +65,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -72,23 +82,29 @@ import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
 import com.google.accompanist.permissions.shouldShowRationale
+import com.weatherapp.BuildConfig
 import com.weatherapp.R
 import com.weatherapp.dataclass.ContactDeveloper
 import com.weatherapp.dataclass.Settings
 import com.weatherapp.dataclass.UsedTechnology
+import com.weatherapp.intent.LocationAction
 import com.weatherapp.intent.SettingsAction
+import com.weatherapp.settings.PermissionIntent
+import com.weatherapp.state.LocationState
 import com.weatherapp.state.SettingsState
 import com.weatherapp.ui.theme.WeatherAppTheme
-import com.weatherapp.utilities.NotificationPermissionHandler
 import com.weatherapp.utilities.TextContent
 import com.weatherapp.utilities.TextTitle
 import com.weatherapp.utilities.copyToClipboard
 import com.weatherapp.utilities.intentApp
+import com.weatherapp.utilities.notificationPermissionHandler
 import com.weatherapp.viewmodel.SettingsViewModel
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
+@RequiresApi(Build.VERSION_CODES.TIRAMISU)
 class SettingsActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -101,12 +117,17 @@ class SettingsActivity : ComponentActivity() {
     }
 }
 
+@RequiresApi(Build.VERSION_CODES.TIRAMISU)
 @Composable
 private fun MainScreenCore(
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     MainScreen(uiState = uiState, onAction = viewModel::onAction)
+
+    if (uiState.bottomSheetNotification) {
+        BottomSheetNotificationPermission(uiState = uiState, onAction = viewModel::onAction)
+    }
 
     if (uiState.bottomSheetCountDown) {
         BottomSheetCountDown(uiState = uiState, onAction = viewModel::onAction)
@@ -123,18 +144,26 @@ private fun MainScreenCore(
     if (uiState.bottomSheetAbout) {
         BottomSheetAbout(uiState = uiState, onAction = viewModel::onAction)
     }
+
+    if (uiState.bottomSheetContactDev) {
+        BottomSheetContactDeveloper(uiState = uiState, onAction = viewModel::onAction)
+    }
 }
 
+@RequiresApi(Build.VERSION_CODES.TIRAMISU)
 @Composable
 private fun MainScreen(
     uiState: SettingsState,
     onAction: (SettingsAction) -> Unit
 ) {
+    val snackBarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
 
     Scaffold(
         modifier = Modifier
             .fillMaxSize(),
+        snackbarHost = { SnackbarHost(hostState = snackBarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text(text = "Settings") },
@@ -158,7 +187,9 @@ private fun MainScreen(
         ContentScreen(
             modifier = Modifier.padding(innerPadding),
             uiState = uiState,
-            onAction = onAction
+            onAction = onAction,
+            snackBarHostState = snackBarHostState,
+            scope = scope
         )
     }
 }
@@ -170,13 +201,17 @@ private fun MainScreen(
 private fun ContentScreen(
     modifier: Modifier = Modifier,
     uiState: SettingsState,
-    onAction: (SettingsAction) -> Unit
+    onAction: (SettingsAction) -> Unit,
+    snackBarHostState: SnackbarHostState,
+    scope: CoroutineScope
 ) {
     Column(
         modifier = modifier
             .padding(horizontal = 15.dp)
             .fillMaxWidth()
     ) {
+        val context = LocalContext.current
+
         val permissionState = rememberPermissionState(
             permission = android.Manifest.permission.POST_NOTIFICATIONS
         )
@@ -188,14 +223,14 @@ private fun ContentScreen(
                 description = "Allow notification permission to get weather info in notification or status bar",
                 isSwitch = true,
                 isChecked = uiState.notification,
-                onSwitchChange = {
-                    if (uiState.notification) {
+                onSwitchChange = { isChecked ->
+                    if (isChecked) {
                         when {
                             permissionState.status.isGranted -> {
                                 onAction(SettingsAction.SetNotification(true))
                             }
                             permissionState.status.shouldShowRationale -> {
-
+                                onAction(SettingsAction.OpenNotificationBottomSheet(true))
                             }
                             !permissionState.status.shouldShowRationale -> {
                                 permissionState.launchPermissionRequest()
@@ -203,6 +238,28 @@ private fun ContentScreen(
                         }
                     } else {
                         onAction(SettingsAction.SetNotification(false))
+                    }
+                }
+            ),
+            Settings(
+                icon = Icons.Rounded.PowerSettingsNew,
+                title = "On Boot Notification",
+                description = "Show notification after phone booting",
+                isSwitch = true,
+                isChecked = uiState.notificationOnBoot,
+                onSwitchChange = { isChecked ->
+                    if (isChecked) {
+                        if (!uiState.notification) {
+                            scope.launch {
+                                snackBarHostState.showSnackbar(
+                                    message = "Notification Enabled Required !"
+                                )
+                            }
+                        } else {
+                            onAction(SettingsAction.SetNotificationOnBoot(true))
+                        }
+                    } else {
+                        onAction(SettingsAction.SetNotificationOnBoot(false))
                     }
                 }
             ),
@@ -233,6 +290,18 @@ private fun ContentScreen(
                 description = "About app",
                 isBottomSheet = true,
                 onItemClick = { onAction(SettingsAction.OpenAboutBottomSheet(true)) },
+            ),
+            Settings(
+                icon = Icons.Rounded.Person,
+                title = "Contact Developer",
+                description = "Andrea Hussanini",
+                isBottomSheet = true,
+                onItemClick = { onAction(SettingsAction.OpenContactDevBottomSheet(true)) },
+            ),
+            Settings(
+                icon = Icons.Rounded.Numbers,
+                title = "Application Version",
+                description = BuildConfig.VERSION_NAME,
             )
         )
         LazyColumn(
@@ -261,6 +330,7 @@ private fun ContentScreen(
                             Spacer(modifier = Modifier.height(5.dp))
                             TextContent(text = settingsOption.description)
                         }
+                        Spacer(Modifier.width(15.dp))
                         Column(
                             modifier = Modifier.width(50.dp).fillMaxHeight(),
                             verticalArrangement = Arrangement.Center,
@@ -270,7 +340,7 @@ private fun ContentScreen(
                                 Switch(
                                     checked = settingsOption.isChecked,
                                     onCheckedChange = {
-                                        settingsOption.onSwitchChange
+                                        settingsOption.onSwitchChange(it)
                                     }
                                 )
                             }
@@ -494,7 +564,6 @@ private fun BottomSheetAbout(
     val scrollState = rememberScrollState()
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
-    val packageManager = context.packageManager
 
     val usedTechnologyList = listOf(
         UsedTechnology(
@@ -730,6 +799,267 @@ private fun BottomSheetAbout(
                         sheetState.hide()
                     }.invokeOnCompletion {
                         onAction(SettingsAction.OpenAboutBottomSheet(false))
+                    }
+                }
+            ) {
+                Text(text = "Close")
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun BottomSheetNotificationPermission(
+    uiState: SettingsState,
+    onAction: (SettingsAction) -> Unit
+) {
+    val context = LocalContext.current
+    val sheetState = rememberModalBottomSheetState(
+        skipPartiallyExpanded = true,
+    )
+    val scope = rememberCoroutineScope()
+
+    ModalBottomSheet(
+        sheetState = sheetState,
+        onDismissRequest = {
+            onAction(SettingsAction.OpenNotificationBottomSheet(false))
+        }
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 15.dp, vertical = 0.dp),
+        ) {
+            Text(
+                text = "Notification Permission Required",
+                style = MaterialTheme.typography.titleLarge,
+                modifier = Modifier.padding(bottom = 15.dp)
+            )
+            Column(
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Card(
+                    modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp))
+                ) {
+                    Column(
+                        modifier = Modifier.padding(15.dp).fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Icon(
+                            modifier = Modifier.size(50.dp),
+                            imageVector = Icons.Rounded.Notifications,
+                            contentDescription = null
+                        )
+                        Spacer(Modifier.height(15.dp))
+                        Text(
+                            text = "Location permission is required to get weather info in notification or status bar",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                }
+                Spacer(Modifier.height(10.dp))
+                Card(
+                    modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp))
+                ) {
+                    Column(
+                        modifier = Modifier.padding(15.dp).fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Text(
+                            text = "Open App Settings",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        Icon(
+                            modifier = Modifier.size(15.dp),
+                            imageVector = Icons.Rounded.KeyboardArrowDown,
+                            contentDescription = null
+                        )
+                        Text(
+                            text = "Permission",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        Icon(
+                            modifier = Modifier.size(15.dp),
+                            imageVector = Icons.Rounded.KeyboardArrowDown,
+                            contentDescription = null
+                        )
+                        Text(
+                            text = "Notification",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        Icon(
+                            modifier = Modifier.size(15.dp),
+                            imageVector = Icons.Rounded.KeyboardArrowDown,
+                            contentDescription = null
+                        )
+                        Text(
+                            text = "Allow Or Allow While Using The App",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                }
+            }
+            Button(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 15.dp, bottom = 15.dp),
+                onClick = {
+                    scope.launch {
+                        sheetState.hide()
+                    }.invokeOnCompletion {
+                        onAction(SettingsAction.OpenNotificationBottomSheet(false))
+                        PermissionIntent().openAppSettings(context)
+                    }
+                }
+            ) {
+                Text(text = "Open App Settings")
+            }
+        }
+    }
+}
+
+@Composable
+private fun BottomSheetContactDeveloper(
+    uiState: SettingsState,
+    onAction: (SettingsAction) -> Unit
+) {
+    val sheetState = rememberModalBottomSheetState(
+        skipPartiallyExpanded = true,
+    )
+    val scope = rememberCoroutineScope()
+    val context = LocalContext.current
+    val contactDeveloperList = listOf(
+        ContactDeveloper(
+            iconVector = Icons.Rounded.Email,
+            title = "E-Mail",
+            description = "andreahussanini.2103@gmail.com",
+            actionIcon = Icons.Rounded.ContentCopy,
+            onItemClick = {
+                copyToClipboard(
+                    label = "E-Mail",
+                    text = "andreahussanini.2103@gmail.com",
+                    toast = "E-Mail Copied !",
+                    context = context
+                )
+            }
+        ),
+        ContactDeveloper(
+            icon = R.drawable.linkedin,
+            title = "LinkedIn",
+            description = "https://www.linkedin.com/in/andrea-hussanini-274223218/",
+            actionIcon = Icons.Rounded.ArrowForward,
+            onItemClick = {
+                intentApp(
+                    webUrl = "https://www.linkedin.com/in/andrea-hussanini-274223218/",
+                    appPackage = "com.linkedin.android",
+                    context = context
+                )
+            }
+        ),
+        ContactDeveloper(
+            icon = R.drawable.github,
+            title = "GitHub",
+            description = "https://github.com/PetaBYT3",
+            actionIcon = Icons.Rounded.ArrowForward,
+            onItemClick = {
+                intentApp(
+                    webUrl = "https://github.com/PetaBYT3",
+                    appPackage = "com.github.android",
+                    context = context
+                )
+            }
+        ),
+        ContactDeveloper(
+            icon = R.drawable.instagram,
+            title = "Instagram",
+            description = "https://www.instagram.com/_andre.kt/",
+            actionIcon = Icons.Rounded.ArrowForward,
+            onItemClick = {
+                intentApp(
+                    webUrl = "https://www.instagram.com/_andre.kt/",
+                    appPackage = "com.instagram.android",
+                    context = context
+                )
+            }
+        ),
+        ContactDeveloper(
+            icon = R.drawable.tiktok,
+            title = "TikTok",
+            description = "https://www.tiktok.com/@xliicxiv",
+            actionIcon = Icons.Rounded.ArrowForward,
+            onItemClick = {
+                intentApp(
+                    webUrl = "https://www.tiktok.com/@xliicxiv",
+                    appPackage = "com.ss.android.ugc.trill",
+                    context = context
+                )
+            }
+        )
+    )
+
+    ModalBottomSheet(
+        sheetState = sheetState,
+        onDismissRequest = {
+            onAction(SettingsAction.OpenContactDevBottomSheet(false))
+        }
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 15.dp, vertical = 0.dp)
+        ) {
+            Text(
+                text = "About",
+                style = MaterialTheme.typography.titleLarge,
+                modifier = Modifier.padding(bottom = 15.dp)
+            )
+            TextTitle(text = "Contact Developer")
+            Spacer(Modifier.height(10.dp))
+            contactDeveloperList.forEach { contactDeveloper ->
+                Card(
+                    modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)),
+                    onClick = { contactDeveloper.onItemClick?.invoke() }
+                ) {
+                    Row(
+                        modifier = Modifier.padding(15.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        if (contactDeveloper.icon != null) {
+                            Icon(
+                                painter = painterResource(contactDeveloper.icon),
+                                contentDescription = null
+                            )
+                        }
+                        if (contactDeveloper.iconVector != null) {
+                            Icon(
+                                imageVector = contactDeveloper.iconVector,
+                                contentDescription = null
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(15.dp))
+                        Text(
+                            text = contactDeveloper.title,
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                        Spacer(Modifier.weight(1f))
+                        Icon(
+                            imageVector = contactDeveloper.actionIcon!!,
+                            contentDescription = null
+                        )
+                    }
+                }
+                Spacer(Modifier.height(10.dp))
+            }
+            Button(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 15.dp, bottom = 15.dp),
+                onClick = {
+                    scope.launch {
+                        sheetState.hide()
+                    }.invokeOnCompletion {
+                        onAction(SettingsAction.OpenContactDevBottomSheet(false))
                     }
                 }
             ) {
