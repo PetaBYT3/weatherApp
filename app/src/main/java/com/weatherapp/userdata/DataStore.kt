@@ -20,7 +20,7 @@ class DataStore(private val context: Context) {
 
     companion object {
         val NOTIFICATION = booleanPreferencesKey("notification")
-        val NOTIFICATION_ON_BOOT = booleanPreferencesKey("show_notification_on_boot")
+        val LAST_LOCATION = stringPreferencesKey("last_location")
         val GPS_SETTINGS = booleanPreferencesKey("gps_settings")
         val SELECTED_LOCATION = intPreferencesKey("selected_location")
         val WIND = stringPreferencesKey("wind")
@@ -37,12 +37,12 @@ class DataStore(private val context: Context) {
         }
     }
 
-    val notificationOnBoot = context.dataStore.data.map {
-        it[NOTIFICATION_ON_BOOT] ?: false
+    val lastLocation = context.dataStore.data.map {
+        it[LAST_LOCATION] ?: ""
     }
-    suspend fun setNotificationOnBoot(gpsSettings: Boolean) {
+    suspend fun setLastLocation(lastLocation: String) {
         context.dataStore.edit {
-            it[NOTIFICATION_ON_BOOT] = gpsSettings
+            it[LAST_LOCATION] = lastLocation
         }
     }
 

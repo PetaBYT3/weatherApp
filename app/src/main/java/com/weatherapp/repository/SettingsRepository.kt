@@ -1,7 +1,7 @@
 package com.weatherapp.repository
 
 import com.weatherapp.userdata.DataStore
-import jakarta.inject.Inject
+import javax.inject.Inject
 
 class SettingsRepository @Inject constructor(
     private val dataStore: DataStore
@@ -11,9 +11,9 @@ class SettingsRepository @Inject constructor(
         dataStore.setNotificationSettings(newNotificationSetting)
     }
 
-    val notificationOnBoot = dataStore.notificationOnBoot
-    suspend fun setNotificationOnBoot(newNotificationOnBoot: Boolean) {
-        dataStore.setNotificationOnBoot(newNotificationOnBoot)
+    val lastLocation = dataStore.lastLocation
+    suspend fun setLastLocation(newLastLocation: String) {
+        dataStore.setLastLocation(newLastLocation)
     }
 
     val degree = dataStore.degree

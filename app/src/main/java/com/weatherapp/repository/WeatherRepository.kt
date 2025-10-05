@@ -3,17 +3,11 @@ package com.weatherapp.repository
 import android.util.Log
 import com.weatherapp.apiservice.WeatherApiService
 import com.weatherapp.dataclass.WeatherResponse
-import retrofit2.Retrofit
-import retrofit2.converter.gson.GsonConverterFactory
+import javax.inject.Inject
 
-class WeatherRepository {
-
-    private val retrofit = Retrofit.Builder()
-        .baseUrl("https://api.weatherapi.com/v1/")
-        .addConverterFactory(GsonConverterFactory.create())
-        .build()
-
-    private val apiService = retrofit.create(WeatherApiService::class.java)
+class WeatherRepository @Inject constructor(
+    private val apiService: WeatherApiService
+) {
 
     suspend fun fetchWeatherData(location: String): WeatherResponse? {
         return try {

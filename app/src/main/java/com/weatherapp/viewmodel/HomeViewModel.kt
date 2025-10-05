@@ -40,6 +40,13 @@ class HomeViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
+            settingsRepository.lastLocation.collect { lastLocation ->
+                _uiState.update { it.copy(test = lastLocation) }
+
+            }
+        }
+
+        viewModelScope.launch {
             settingsRepository.refreshCountDown.collect { countDown ->
                 _uiState.update { it.copy(refreshWeatherCountDown = countDown) }
                 _uiState.update { it.copy(countDownTimer = countDown) }
@@ -115,6 +122,7 @@ class HomeViewModel @Inject constructor(
                             if (weatherResponse != null) {
                                 _uiState.update { it.copy(weatherData = weatherResponse) }
                             }
+                            settingsRepository.setLastLocation(coordinateToFetch)
                         }
                     } else {
                         if (locationToFetch != null) {
@@ -122,6 +130,7 @@ class HomeViewModel @Inject constructor(
                             if (weatherResponse != null) {
                                 _uiState.update { it.copy(weatherData = weatherResponse) }
                             }
+                            settingsRepository.setLastLocation(locationToFetch)
                         }
                     }
                 }

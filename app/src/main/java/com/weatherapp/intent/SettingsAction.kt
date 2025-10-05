@@ -5,7 +5,6 @@ sealed interface SettingsAction {
     //Notification
     data class OpenNotificationBottomSheet(val isOpen: Boolean) : SettingsAction
     data class SetNotification(val notification: Boolean) : SettingsAction
-    data class SetNotificationOnBoot(val notificationOnBoot: Boolean) : SettingsAction
     //Degree
     data class OpenDegreeBottomSheet(val isOpen: Boolean) : SettingsAction
     data class SetDegree(val degree: String) : SettingsAction
@@ -18,7 +17,6 @@ sealed interface SettingsAction {
     data class SetCountDown(val countDown: Int) : SettingsAction
 
     data class OpenContactDevBottomSheet(val isOpen: Boolean) : SettingsAction
-    data class OpenAboutAppBottomSheet(val isOpen: Boolean) : SettingsAction
 
-    data class OpenAboutBottomSheet(val isOpen: Boolean) : SettingsAction
+    data class OpenAboutAppBottomSheet(val isOpen: Boolean) : SettingsAction
 }

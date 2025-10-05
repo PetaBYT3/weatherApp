@@ -5,8 +5,6 @@ data class SettingsState(
     val bottomSheetNotification: Boolean = false,
     val notification: Boolean = false,
 
-    val notificationOnBoot: Boolean = false,
-
     val bottomSheetDegree: Boolean = false,
     val degree: String? = null,
 

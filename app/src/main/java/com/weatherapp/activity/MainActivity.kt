@@ -72,6 +72,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.work.PeriodicWorkRequestBuilder
+import androidx.work.WorkManager
 import coil.compose.AsyncImage
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
@@ -88,9 +90,11 @@ import com.weatherapp.utilities.TextContent
 import com.weatherapp.utilities.TextTitle
 import com.weatherapp.utilities.VerticalProgressBar
 import com.weatherapp.viewmodel.HomeViewModel
+import com.weatherapp.worker.NotificationWorker
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import java.util.concurrent.TimeUnit
 
 @ExperimentalMaterial3Api
 @AndroidEntryPoint
@@ -210,14 +214,39 @@ private fun ContentScreen(
                 .fillMaxWidth()
                 .animateContentSize()
         ) {
-            Card(
-                modifier = Modifier.clip(RoundedCornerShape(50)),
-            ) {
-                Text(
-                    modifier = Modifier.padding(15.dp),
-                    text = "Current Location",
-                    style = MaterialTheme.typography.bodyMedium
-                )
+            Text(text = uiState.test.toString())
+            Row {
+                Card(
+                    modifier = Modifier.clip(RoundedCornerShape(50)),
+                ) {
+                    Text(
+                        modifier = Modifier.padding(15.dp),
+                        text = "Used Location",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+                Spacer(modifier = Modifier.width(10.dp))
+                if (uiState.gpsSettings) {
+                    Card(
+                        modifier = Modifier.clip(RoundedCornerShape(50)),
+                    ) {
+                        Text(
+                            modifier = Modifier.padding(15.dp),
+                            text = "From GPS",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                } else {
+                    Card(
+                        modifier = Modifier.clip(RoundedCornerShape(50)),
+                    ) {
+                        Text(
+                            modifier = Modifier.padding(15.dp),
+                            text = "From Location List",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                }
             }
             Spacer(modifier = Modifier.height(10.dp))
             Card(
@@ -262,58 +291,17 @@ private fun ContentScreen(
                 }
             }
             Spacer(modifier = Modifier.height(10.dp))
-            if (uiState.weatherData != null) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                ) {
-                    Card(
-                        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp))
-                    ) {
-                        Column(
-                            modifier = Modifier.fillMaxWidth().padding(15.dp),
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(bottom = 15.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    modifier = Modifier.width(20.dp).height(20.dp),
-                                    imageVector = Icons.Rounded.LocationOn,
-                                    contentDescription = null
-                                )
-                                Spacer(modifier = Modifier.width(10.dp))
-                                Text(
-                                    text = "Location",
-                                    style = MaterialTheme.typography.bodyLarge
-                                )
-                            }
-                            Text(
-                                text = uiState.weatherData.location.country,
-                                style = MaterialTheme.typography.bodyMedium
-                            )
-                            Text(
-                                text = uiState.weatherData.location.region,
-                                style = MaterialTheme.typography.bodyMedium
-                            )
-                            Text(
-                                text = uiState.weatherData.location.name,
-                                style = MaterialTheme.typography.bodyMedium
-                            )
-                        }
-                    }
-                    Spacer(modifier = Modifier.height(10.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min)
+            if (uiState.locationToFetch != null || uiState.coordinateToFetch != null) {
+                if (uiState.weatherData != null) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
                     ) {
                         Card(
-                            modifier = Modifier
-                                .weight(1f)
-                                .fillMaxHeight()
-                                .clip(RoundedCornerShape(20.dp))
+                            modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp))
                         ) {
                             Column(
-                                modifier = Modifier.padding(15.dp).fillMaxSize()
+                                modifier = Modifier.fillMaxWidth().padding(15.dp),
                             ) {
                                 Row(
                                     modifier = Modifier.padding(bottom = 15.dp),
@@ -321,190 +309,249 @@ private fun ContentScreen(
                                 ) {
                                     Icon(
                                         modifier = Modifier.width(20.dp).height(20.dp),
-                                        imageVector = Icons.Rounded.AcUnit,
+                                        imageVector = Icons.Rounded.LocationOn,
                                         contentDescription = null
                                     )
                                     Spacer(modifier = Modifier.width(10.dp))
                                     Text(
-                                        text = "Degree",
+                                        text = "Location",
                                         style = MaterialTheme.typography.bodyLarge
                                     )
                                 }
+                                Text(
+                                    text = uiState.weatherData.location.country,
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                                Text(
+                                    text = uiState.weatherData.location.region,
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                                Text(
+                                    text = uiState.weatherData.location.name,
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(10.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min)
+                        ) {
+                            Card(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .fillMaxHeight()
+                                    .clip(RoundedCornerShape(20.dp))
+                            ) {
                                 Column(
-                                    modifier = Modifier.fillMaxSize(),
-                                    verticalArrangement = Arrangement.Center
+                                    modifier = Modifier.padding(15.dp).fillMaxSize()
                                 ) {
-                                    when (uiState.degreeFormat) {
-                                        "Celcius" -> Text(
-                                            text = "${uiState.weatherData.current.temp_c}°C",
-                                            style = MaterialTheme.typography.bodyLarge,
-                                            fontSize = 35.sp
+                                    Row(
+                                        modifier = Modifier.padding(bottom = 15.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(
+                                            modifier = Modifier.width(20.dp).height(20.dp),
+                                            imageVector = Icons.Rounded.AcUnit,
+                                            contentDescription = null
                                         )
-                                        "Fahrenheit" -> Text(
-                                            text = "${uiState.weatherData.current.temp_f}°F",
-                                            style = MaterialTheme.typography.bodyLarge,
-                                            fontSize = 35.sp
+                                        Spacer(modifier = Modifier.width(10.dp))
+                                        Text(
+                                            text = "Degree",
+                                            style = MaterialTheme.typography.bodyLarge
                                         )
+                                    }
+                                    Column(
+                                        modifier = Modifier.fillMaxSize(),
+                                        verticalArrangement = Arrangement.Center
+                                    ) {
+                                        when (uiState.degreeFormat) {
+                                            "Celcius" -> Text(
+                                                text = "${uiState.weatherData.current.temp_c}°C",
+                                                style = MaterialTheme.typography.bodyLarge,
+                                                fontSize = 35.sp
+                                            )
+                                            "Fahrenheit" -> Text(
+                                                text = "${uiState.weatherData.current.temp_f}°F",
+                                                style = MaterialTheme.typography.bodyLarge,
+                                                fontSize = 35.sp
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Card(
+                                modifier = Modifier.weight(1f).clip(RoundedCornerShape(20.dp))
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(15.dp)
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(bottom = 15.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(
+                                            modifier = Modifier.width(20.dp).height(20.dp),
+                                            imageVector = Icons.Rounded.WindPower,
+                                            contentDescription = null
+                                        )
+                                        Spacer(modifier = Modifier.width(10.dp))
+                                        Text(
+                                            text = "Wind",
+                                            style = MaterialTheme.typography.bodyLarge
+                                        )
+                                    }
+                                    when (uiState.windFormat) {
+                                        "MPH" -> Text(
+                                            text = "${uiState.weatherData.current.wind_mph} MPH",
+                                            style = MaterialTheme.typography.bodyMedium
+                                        )
+                                        "KPH" -> Text(
+                                            text = "${uiState.weatherData.current.wind_kph} KPH",
+                                            style = MaterialTheme.typography.bodyMedium
+                                        )
+                                    }
+                                    Text(
+                                        text = "${uiState.weatherData.current.wind_degree}°",
+                                        style = MaterialTheme.typography.bodyMedium
+                                    )
+                                    Text(
+                                        text = uiState.weatherData.current.wind_dir,
+                                        style = MaterialTheme.typography.bodyMedium
+                                    )
+                                }
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(10.dp))
+                        Card(
+                            modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)),
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(15.dp).height(IntrinsicSize.Min),
+                            ) {
+                                Column(
+                                    modifier = Modifier.fillMaxHeight().weight(1f)
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(
+                                            modifier = Modifier.width(20.dp).height(20.dp),
+                                            imageVector = Icons.Rounded.Cloud,
+                                            contentDescription = null
+                                        )
+                                        Spacer(modifier = Modifier.width(10.dp))
+                                        Text(
+                                            text = "Condition",
+                                            style = MaterialTheme.typography.bodyLarge
+                                        )
+                                    }
+                                    Column(
+                                        modifier = Modifier.weight(1f).fillMaxHeight(),
+                                        verticalArrangement = Arrangement.Center
+                                    ) {
+                                        Text(
+                                            text = uiState.weatherData.current.condition.text,
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            textAlign = TextAlign.Center
+                                        )
+                                    }
+                                }
+                                AsyncImage(
+                                    modifier = Modifier.size(100.dp),
+                                    model = "https:${uiState.weatherData.current.condition.icon}",
+                                    contentDescription = null
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(10.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Card(
+                                modifier = Modifier.weight(1f).clip(RoundedCornerShape(20.dp))
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(15.dp)
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(bottom = 15.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(
+                                            modifier = Modifier.width(20.dp).height(20.dp),
+                                            imageVector = Icons.Rounded.Compress,
+                                            contentDescription = null
+                                        )
+                                        Spacer(modifier = Modifier.width(10.dp))
+                                        Text(
+                                            text = "Pressure",
+                                            style = MaterialTheme.typography.bodyLarge
+                                        )
+                                    }
+                                    Text(
+                                        text = "${uiState.weatherData.current.pressure_in} inHg",
+                                        style = MaterialTheme.typography.bodyMedium
+                                    )
+                                }
+                            }
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Card(
+                                modifier = Modifier.weight(1f).clip(RoundedCornerShape(20.dp))
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(15.dp)
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(bottom = 15.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(
+                                            modifier = Modifier.width(20.dp).height(20.dp),
+                                            imageVector = Icons.Rounded.WaterDrop,
+                                            contentDescription = null
+                                        )
+                                        Spacer(modifier = Modifier.width(10.dp))
+                                        Text(
+                                            text = "Humidity",
+                                            style = MaterialTheme.typography.bodyLarge
+                                        )
+                                    }
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        verticalAlignment = Alignment.CenterVertically
+
+                                    ) {
+                                        Text(
+                                            text = "${uiState.weatherData.current.humidity}%",
+                                            style = MaterialTheme.typography.bodyMedium
+                                        )
+                                        Spacer(modifier = Modifier.width(10.dp))
+                                        VerticalProgressBar(uiState = uiState, onAction = onAction)
                                     }
                                 }
                             }
                         }
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Card(
-                            modifier = Modifier.weight(1f).clip(RoundedCornerShape(20.dp))
-                        ) {
-                            Column(
-                                modifier = Modifier.padding(15.dp)
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(bottom = 15.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Icon(
-                                        modifier = Modifier.width(20.dp).height(20.dp),
-                                        imageVector = Icons.Rounded.WindPower,
-                                        contentDescription = null
-                                    )
-                                    Spacer(modifier = Modifier.width(10.dp))
-                                    Text(
-                                        text = "Wind",
-                                        style = MaterialTheme.typography.bodyLarge
-                                    )
-                                }
-                                when (uiState.windFormat) {
-                                    "MPH" -> Text(
-                                        text = "${uiState.weatherData.current.wind_mph} MPH",
-                                        style = MaterialTheme.typography.bodyMedium
-                                    )
-                                    "KPH" -> Text(
-                                        text = "${uiState.weatherData.current.wind_kph} KPH",
-                                        style = MaterialTheme.typography.bodyMedium
-                                    )
-                                }
-                                Text(
-                                    text = "${uiState.weatherData.current.wind_degree}°",
-                                    style = MaterialTheme.typography.bodyMedium
-                                )
-                                Text(
-                                    text = uiState.weatherData.current.wind_dir,
-                                    style = MaterialTheme.typography.bodyMedium
-                                )
-                            }
-                        }
                     }
-                    Spacer(modifier = Modifier.height(10.dp))
-                    Card(
-                        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)),
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth().padding(15.dp).height(IntrinsicSize.Min),
-                        ) {
-                            Column(
-                                modifier = Modifier.fillMaxHeight().weight(1f)
-                            ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Icon(
-                                        modifier = Modifier.width(20.dp).height(20.dp),
-                                        imageVector = Icons.Rounded.Cloud,
-                                        contentDescription = null
-                                    )
-                                    Spacer(modifier = Modifier.width(10.dp))
-                                    Text(
-                                        text = "Condition",
-                                        style = MaterialTheme.typography.bodyLarge
-                                    )
-                                }
-                                Column(
-                                    modifier = Modifier.weight(1f).fillMaxHeight(),
-                                    verticalArrangement = Arrangement.Center
-                                ) {
-                                    Text(
-                                        text = uiState.weatherData.current.condition.text,
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        textAlign = TextAlign.Center
-                                    )
-                                }
-                            }
-                            AsyncImage(
-                                modifier = Modifier.size(100.dp),
-                                model = "https:${uiState.weatherData.current.condition.icon}",
-                                contentDescription = null
-                            )
-                        }
-                    }
-                    Spacer(modifier = Modifier.height(10.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Card(
-                            modifier = Modifier.weight(1f).clip(RoundedCornerShape(20.dp))
-                        ) {
-                            Column(
-                                modifier = Modifier.padding(15.dp)
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(bottom = 15.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Icon(
-                                        modifier = Modifier.width(20.dp).height(20.dp),
-                                        imageVector = Icons.Rounded.Compress,
-                                        contentDescription = null
-                                    )
-                                    Spacer(modifier = Modifier.width(10.dp))
-                                    Text(
-                                        text = "Pressure",
-                                        style = MaterialTheme.typography.bodyLarge
-                                    )
-                                }
-                                Text(
-                                    text = "${uiState.weatherData.current.pressure_in} inHg",
-                                    style = MaterialTheme.typography.bodyMedium
-                                )
-                            }
-                        }
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Card(
-                            modifier = Modifier.weight(1f).clip(RoundedCornerShape(20.dp))
-                        ) {
-                            Column(
-                                modifier = Modifier.padding(15.dp)
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(bottom = 15.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Icon(
-                                        modifier = Modifier.width(20.dp).height(20.dp),
-                                        imageVector = Icons.Rounded.WaterDrop,
-                                        contentDescription = null
-                                    )
-                                    Spacer(modifier = Modifier.width(10.dp))
-                                    Text(
-                                        text = "Humidity",
-                                        style = MaterialTheme.typography.bodyLarge
-                                    )
-                                }
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    verticalAlignment = Alignment.CenterVertically
-
-                                ) {
-                                    Text(
-                                        text = "${uiState.weatherData.current.humidity}%",
-                                        style = MaterialTheme.typography.bodyMedium
-                                    )
-                                    Spacer(modifier = Modifier.width(10.dp))
-                                    VerticalProgressBar(uiState = uiState, onAction = onAction)
-                                }
-                            }
-                        }
-                    }
+                } else {
+                    ShimmerPlaceHolder()
                 }
             } else {
-                ShimmerPlaceHolder()
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(100.dp)
+                        .animateContentSize()
+                        .clip(RoundedCornerShape(20.dp))
+                ) {
+                    Column(
+                        modifier = Modifier.fillMaxSize().padding(15.dp),
+                        verticalArrangement = Arrangement.Center,
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        TextContent("Cant get weather data because no location selected. Please enable GPS or select location from your list")
+                    }
+                }
             }
         }
         Spacer(modifier = Modifier.height(10.dp))
@@ -556,7 +603,7 @@ private fun ContentScreen(
                     key = { uiState.locationWithWeatherList[it].location.uId },
                 ) { index ->
                     val locationList = uiState.locationWithWeatherList[index]
-                    Row (
+                    Row(
                         modifier = Modifier.fillMaxWidth().padding(15.dp).height(IntrinsicSize.Min),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -585,12 +632,13 @@ private fun ContentScreen(
                                 when (uiState.degreeFormat) {
                                     "Celcius" ->
                                         Text(
-                                            text =  "${locationList.weatherResponse.current.temp_c}°C",
+                                            text = "${locationList.weatherResponse.current.temp_c}°C",
                                             fontSize = 30.sp
                                         )
+
                                     "Fahrenheit" ->
                                         Text(
-                                            text =  "${locationList.weatherResponse.current.temp_f}°F",
+                                            text = "${locationList.weatherResponse.current.temp_f}°F",
                                             fontSize = 30.sp
                                         )
                                 }
@@ -605,7 +653,7 @@ private fun ContentScreen(
                                     modifier = Modifier.shimmer()
                                 ) {
                                     Text(
-                                        text =  "???°C",
+                                        text = "???°C",
                                         fontSize = 30.sp
                                     )
                                 }
@@ -625,7 +673,19 @@ private fun ContentScreen(
                 }
             }
         } else {
-            ShimmerPlaceHolder()
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(100.dp)
+                    .clip(RoundedCornerShape(20.dp)),
+            ) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    TextContent(text = "Your Location List Is Empty")
+                }
+            }
         }
         Spacer(modifier = Modifier.height(10.dp))
     }

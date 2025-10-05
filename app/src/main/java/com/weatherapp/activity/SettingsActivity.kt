@@ -5,7 +5,6 @@ package com.weatherapp.activity
 import android.annotation.SuppressLint
 import android.os.Build
 import android.os.Bundle
-import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -26,7 +25,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.AcUnit
@@ -35,13 +33,11 @@ import androidx.compose.material.icons.rounded.ArrowDownward
 import androidx.compose.material.icons.rounded.ArrowForward
 import androidx.compose.material.icons.rounded.ContentCopy
 import androidx.compose.material.icons.rounded.Email
-import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
-import androidx.compose.material.icons.rounded.LocationOn
+import androidx.compose.material.icons.rounded.List
 import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material.icons.rounded.Numbers
 import androidx.compose.material.icons.rounded.Person
-import androidx.compose.material.icons.rounded.PowerSettingsNew
 import androidx.compose.material.icons.rounded.Timer
 import androidx.compose.material.icons.rounded.WindPower
 import androidx.compose.material3.Button
@@ -62,7 +58,6 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.rememberSliderState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -86,18 +81,14 @@ import com.weatherapp.BuildConfig
 import com.weatherapp.R
 import com.weatherapp.dataclass.ContactDeveloper
 import com.weatherapp.dataclass.Settings
-import com.weatherapp.dataclass.UsedTechnology
-import com.weatherapp.intent.LocationAction
 import com.weatherapp.intent.SettingsAction
 import com.weatherapp.settings.PermissionIntent
-import com.weatherapp.state.LocationState
 import com.weatherapp.state.SettingsState
 import com.weatherapp.ui.theme.WeatherAppTheme
 import com.weatherapp.utilities.TextContent
 import com.weatherapp.utilities.TextTitle
 import com.weatherapp.utilities.copyToClipboard
 import com.weatherapp.utilities.intentApp
-import com.weatherapp.utilities.notificationPermissionHandler
 import com.weatherapp.viewmodel.SettingsViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
@@ -142,7 +133,7 @@ private fun MainScreenCore(
     }
 
     if (uiState.bottomSheetAbout) {
-        BottomSheetAbout(uiState = uiState, onAction = viewModel::onAction)
+        BottomSheetAboutApp(uiState = uiState, onAction = viewModel::onAction)
     }
 
     if (uiState.bottomSheetContactDev) {
@@ -220,7 +211,7 @@ private fun ContentScreen(
             Settings(
                 icon = Icons.Rounded.Notifications,
                 title = "Notification",
-                description = "Allow notification permission to get weather info in notification or status bar",
+                description = "Keep updated by getting weather info in notification while closing the app",
                 isSwitch = true,
                 isChecked = uiState.notification,
                 onSwitchChange = { isChecked ->
@@ -238,28 +229,6 @@ private fun ContentScreen(
                         }
                     } else {
                         onAction(SettingsAction.SetNotification(false))
-                    }
-                }
-            ),
-            Settings(
-                icon = Icons.Rounded.PowerSettingsNew,
-                title = "On Boot Notification",
-                description = "Show notification after phone booting",
-                isSwitch = true,
-                isChecked = uiState.notificationOnBoot,
-                onSwitchChange = { isChecked ->
-                    if (isChecked) {
-                        if (!uiState.notification) {
-                            scope.launch {
-                                snackBarHostState.showSnackbar(
-                                    message = "Notification Enabled Required !"
-                                )
-                            }
-                        } else {
-                            onAction(SettingsAction.SetNotificationOnBoot(true))
-                        }
-                    } else {
-                        onAction(SettingsAction.SetNotificationOnBoot(false))
                     }
                 }
             ),
@@ -285,18 +254,18 @@ private fun ContentScreen(
                 onItemClick = { onAction(SettingsAction.OpenCountDownBottomSheet(true)) },
             ),
             Settings(
-                icon = Icons.Rounded.Info,
-                title = "Info",
-                description = "About app",
-                isBottomSheet = true,
-                onItemClick = { onAction(SettingsAction.OpenAboutBottomSheet(true)) },
-            ),
-            Settings(
                 icon = Icons.Rounded.Person,
                 title = "Contact Developer",
                 description = "Andrea Hussanini",
                 isBottomSheet = true,
                 onItemClick = { onAction(SettingsAction.OpenContactDevBottomSheet(true)) },
+            ),
+            Settings(
+                icon = Icons.Rounded.List,
+                title = "About Application",
+                description = "Used technology",
+                isBottomSheet = true,
+                onItemClick = { onAction(SettingsAction.OpenAboutAppBottomSheet(true)) },
             ),
             Settings(
                 icon = Icons.Rounded.Numbers,
@@ -554,7 +523,7 @@ private fun BottomSheetCountDown(
 }
 
 @Composable
-private fun BottomSheetAbout(
+private fun BottomSheetAboutApp(
     uiState: SettingsState,
     onAction: (SettingsAction) -> Unit
 ) {
@@ -565,21 +534,7 @@ private fun BottomSheetAbout(
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
 
-    val usedTechnologyList = listOf(
-        UsedTechnology(
-            icon = R.drawable.kotlin,
-            title = "Kotlin"
-        ),
-        UsedTechnology(
-            icon = R.drawable.jetpackcompose,
-            title = "Jetpack Compose"
-        ),
-        UsedTechnology(
-            icon = R.drawable.xml,
-            title = "XML"
-        )
-    )
-    val poweredByList = listOf(
+    val usedTechnology = listOf(
         ContactDeveloper(
             iconVector = Icons.Rounded.Api,
             title = "Weather API",
@@ -595,82 +550,25 @@ private fun BottomSheetAbout(
         ContactDeveloper(
             icon = R.drawable.gemini,
             title = "Gemini Generative AI"
-        )
-    )
-
-    val contactDeveloperList = listOf(
-        ContactDeveloper(
-            iconVector = Icons.Rounded.Email,
-            title = "E-Mail",
-            description = "andreahussanini.2103@gmail.com",
-            actionIcon = Icons.Rounded.ContentCopy,
-            onItemClick = {
-                copyToClipboard(
-                    label = "E-Mail",
-                    text = "andreahussanini.2103@gmail.com",
-                    toast = "E-Mail Copied !",
-                    context = context
-                )
-            }
         ),
         ContactDeveloper(
-            icon = R.drawable.linkedin,
-            title = "LinkedIn",
-            description = "https://www.linkedin.com/in/andrea-hussanini-274223218/",
-            actionIcon = Icons.Rounded.ArrowForward,
-            onItemClick = {
-                intentApp(
-                    webUrl = "https://www.linkedin.com/in/andrea-hussanini-274223218/",
-                    appPackage = "com.linkedin.android",
-                    context = context
-                )
-            }
+            icon = R.drawable.kotlin,
+            title = "Kotlin"
         ),
         ContactDeveloper(
-            icon = R.drawable.github,
-            title = "GitHub",
-            description = "https://github.com/PetaBYT3",
-            actionIcon = Icons.Rounded.ArrowForward,
-            onItemClick = {
-                intentApp(
-                    webUrl = "https://github.com/PetaBYT3",
-                    appPackage = "com.github.android",
-                    context = context
-                )
-            }
+            icon = R.drawable.jetpackcompose,
+            title = "Jetpack Compose"
         ),
         ContactDeveloper(
-            icon = R.drawable.instagram,
-            title = "Instagram",
-            description = "https://www.instagram.com/_andre.kt/",
-            actionIcon = Icons.Rounded.ArrowForward,
-            onItemClick = {
-                intentApp(
-                    webUrl = "https://www.instagram.com/_andre.kt/",
-                    appPackage = "com.instagram.android",
-                    context = context
-                )
-            }
-        ),
-        ContactDeveloper(
-            icon = R.drawable.tiktok,
-            title = "TikTok",
-            description = "https://www.tiktok.com/@xliicxiv",
-            actionIcon = Icons.Rounded.ArrowForward,
-            onItemClick = {
-                intentApp(
-                    webUrl = "https://www.tiktok.com/@xliicxiv",
-                    appPackage = "com.ss.android.ugc.trill",
-                    context = context
-                )
-            }
+            icon = R.drawable.xml,
+            title = "XML"
         )
     )
 
     ModalBottomSheet(
         sheetState = sheetState,
         onDismissRequest = {
-            onAction(SettingsAction.OpenAboutBottomSheet(false))
+            onAction(SettingsAction.OpenAboutAppBottomSheet(false))
         }
     ) {
         Column(
@@ -679,116 +577,47 @@ private fun BottomSheetAbout(
                 .padding(horizontal = 15.dp, vertical = 0.dp)
         ) {
             Text(
-                text = "About",
+                text = "About Application",
                 style = MaterialTheme.typography.titleLarge,
                 modifier = Modifier.padding(bottom = 15.dp)
             )
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
-                    .verticalScroll(scrollState, true)
-            ) {
-                TextTitle(text = "Powered By")
-                Spacer(Modifier.height(10.dp))
-                poweredByList.forEach { poweredBy ->
-                    Card(
-                        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)),
-                        onClick = { poweredBy.onItemClick?.invoke() }
+            Spacer(Modifier.height(10.dp))
+            usedTechnology.forEach { poweredBy ->
+                Card(
+                    modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)),
+                    onClick = { poweredBy.onItemClick?.invoke() }
+                ) {
+                    Row(
+                        modifier = Modifier.padding(15.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Row(
-                            modifier = Modifier.padding(15.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            if (poweredBy.icon != null) {
-                                Icon(
-                                    painter = painterResource(poweredBy.icon),
-                                    contentDescription = null
-                                )
-                            }
-                            if (poweredBy.iconVector != null) {
-                                Icon(
-                                    imageVector = poweredBy.iconVector,
-                                    contentDescription = null
-                                )
-                            }
-                            Spacer(modifier = Modifier.width(15.dp))
-                            Text(
-                                text = poweredBy.title,
-                                style = MaterialTheme.typography.bodyLarge
-                            )
-                            Spacer(Modifier.weight(1f))
-                            if (poweredBy.actionIcon != null) {
-                                Icon(
-                                    imageVector = poweredBy.actionIcon,
-                                    contentDescription = null
-                                )
-                            }
-                        }
-                    }
-                    Spacer(Modifier.height(10.dp))
-                }
-
-                Spacer(Modifier.height(10.dp))
-                TextTitle(text = "Used Technology")
-                Spacer(Modifier.height(10.dp))
-                usedTechnologyList.forEach { usedTechnology ->
-                    Card(
-                        modifier = Modifier.clip(RoundedCornerShape(20.dp)).fillMaxWidth(),
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .padding(15.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
+                        if (poweredBy.icon != null) {
                             Icon(
-                                painter = painterResource(usedTechnology.icon),
+                                painter = painterResource(poweredBy.icon),
                                 contentDescription = null
                             )
-                            Spacer(Modifier.width(10.dp))
-                            TextContent(text = usedTechnology.title)
                         }
-                    }
-                    Spacer(Modifier.height(10.dp))
-                }
-                Spacer(Modifier.height(10.dp))
-                TextTitle(text = "Contact Developer")
-                Spacer(Modifier.height(10.dp))
-                contactDeveloperList.forEach { contactDeveloper ->
-                    Card(
-                        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)),
-                        onClick = { contactDeveloper.onItemClick?.invoke() }
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(15.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            if (contactDeveloper.icon != null) {
-                                Icon(
-                                    painter = painterResource(contactDeveloper.icon),
-                                    contentDescription = null
-                                )
-                            }
-                            if (contactDeveloper.iconVector != null) {
-                                Icon(
-                                    imageVector = contactDeveloper.iconVector,
-                                    contentDescription = null
-                                )
-                            }
-                            Spacer(modifier = Modifier.width(15.dp))
-                            Text(
-                                text = contactDeveloper.title,
-                                style = MaterialTheme.typography.bodyLarge
-                            )
-                            Spacer(Modifier.weight(1f))
+                        if (poweredBy.iconVector != null) {
                             Icon(
-                                imageVector = contactDeveloper.actionIcon!!,
+                                imageVector = poweredBy.iconVector,
+                                contentDescription = null
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(15.dp))
+                        Text(
+                            text = poweredBy.title,
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                        Spacer(Modifier.weight(1f))
+                        if (poweredBy.actionIcon != null) {
+                            Icon(
+                                imageVector = poweredBy.actionIcon,
                                 contentDescription = null
                             )
                         }
                     }
-                    Spacer(Modifier.height(10.dp))
                 }
+                Spacer(Modifier.height(10.dp))
             }
             Button(
                 modifier = Modifier
@@ -798,7 +627,7 @@ private fun BottomSheetAbout(
                     scope.launch {
                         sheetState.hide()
                     }.invokeOnCompletion {
-                        onAction(SettingsAction.OpenAboutBottomSheet(false))
+                        onAction(SettingsAction.OpenAboutAppBottomSheet(false))
                     }
                 }
             ) {
@@ -1010,11 +839,10 @@ private fun BottomSheetContactDeveloper(
                 .padding(horizontal = 15.dp, vertical = 0.dp)
         ) {
             Text(
-                text = "About",
+                text = "Contact Developer",
                 style = MaterialTheme.typography.titleLarge,
                 modifier = Modifier.padding(bottom = 15.dp)
             )
-            TextTitle(text = "Contact Developer")
             Spacer(Modifier.height(10.dp))
             contactDeveloperList.forEach { contactDeveloper ->
                 Card(

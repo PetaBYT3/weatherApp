@@ -7,7 +7,6 @@ import com.weatherapp.roomdata.dao.LocationDao
 import com.weatherapp.roomdata.dataclass.Location
 import com.weatherapp.userdata.DataStore
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 

@@ -562,7 +562,11 @@ private fun BottomSheetDelete(
                     .fillMaxWidth()
                     .padding(top = 15.dp, bottom = 15.dp),
                 onClick = {
-
+                    scope.launch {
+                        sheetState.hide()
+                    }.invokeOnCompletion {
+                        onAction(LocationAction.ConfirmDeleteLocation)
+                    }
                 }
             ) {
                 Text(text = "Delete")
