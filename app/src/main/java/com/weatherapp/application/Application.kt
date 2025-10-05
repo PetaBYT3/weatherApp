@@ -1,6 +1,7 @@
 package com.weatherapp.application
 
 import android.app.Application
+import android.util.Log
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -10,8 +11,15 @@ import androidx.lifecycle.ProcessLifecycleOwner
 import androidx.work.Configuration
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
+import com.weatherapp.repository.SettingsRepository
 import com.weatherapp.worker.NotificationWorker
 import dagger.hilt.android.HiltAndroidApp
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
@@ -20,6 +28,11 @@ class Application: Application(), Configuration.Provider, LifecycleObserver {
 
     @Inject
     lateinit var workerFactory: HiltWorkerFactory
+
+    @Inject
+    lateinit var settingsRepository: SettingsRepository
+
+    private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     private val workerName = "WeatherNotificationWork"
 
@@ -30,10 +43,16 @@ class Application: Application(), Configuration.Provider, LifecycleObserver {
 
     override fun onCreate() {
         super.onCreate()
+        val notificationSetting = settingsRepository.notificationSetting
         val observer = LifecycleEventObserver { source, event ->
             when (event) {
                 Lifecycle.Event.ON_STOP -> {
-                    startWeatherWorker()
+                    applicationScope.launch {
+                        if (notificationSetting.first()) {
+                            Log.d("Application", notificationSetting.first().toString())
+                            startWeatherWorker()
+                        }
+                    }
                 }
                 Lifecycle.Event.ON_START -> {
                     cancelWeatherWorker()

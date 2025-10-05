@@ -40,13 +40,6 @@ class HomeViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            settingsRepository.lastLocation.collect { lastLocation ->
-                _uiState.update { it.copy(test = lastLocation) }
-
-            }
-        }
-
-        viewModelScope.launch {
             settingsRepository.refreshCountDown.collect { countDown ->
                 _uiState.update { it.copy(refreshWeatherCountDown = countDown) }
                 _uiState.update { it.copy(countDownTimer = countDown) }
@@ -183,7 +176,7 @@ class HomeViewModel @Inject constructor(
 
                     val generativeModel = GenerativeModel(
                         modelName = "gemini-2.5-flash-lite",
-                        apiKey = BuildConfig.GEMINI_API_KEY
+                        apiKey = "AIzaSyDyFbEcyWh9oW0ZI31-f6VY8SfNTI0p_ss"
                     )
                     val weatherData = _uiState.value.weatherData
 

@@ -21,6 +21,5 @@ data class HomeState(
 
     val initialBottomSheetGemini: Boolean = true,
     val bottomSheetGemini: Boolean = false,
-    val geminiResponse: String? = null,
-    val test: String? = null
+    val geminiResponse: String? = null
 )

@@ -762,7 +762,6 @@ private fun BottomSheetContactDeveloper(
         ContactDeveloper(
             iconVector = Icons.Rounded.Email,
             title = "E-Mail",
-            description = "andreahussanini.2103@gmail.com",
             actionIcon = Icons.Rounded.ContentCopy,
             onItemClick = {
                 copyToClipboard(
@@ -776,7 +775,6 @@ private fun BottomSheetContactDeveloper(
         ContactDeveloper(
             icon = R.drawable.linkedin,
             title = "LinkedIn",
-            description = "https://www.linkedin.com/in/andrea-hussanini-274223218/",
             actionIcon = Icons.Rounded.ArrowForward,
             onItemClick = {
                 intentApp(
@@ -789,7 +787,6 @@ private fun BottomSheetContactDeveloper(
         ContactDeveloper(
             icon = R.drawable.github,
             title = "GitHub",
-            description = "https://github.com/PetaBYT3",
             actionIcon = Icons.Rounded.ArrowForward,
             onItemClick = {
                 intentApp(
@@ -802,7 +799,6 @@ private fun BottomSheetContactDeveloper(
         ContactDeveloper(
             icon = R.drawable.instagram,
             title = "Instagram",
-            description = "https://www.instagram.com/_andre.kt/",
             actionIcon = Icons.Rounded.ArrowForward,
             onItemClick = {
                 intentApp(
@@ -815,11 +811,10 @@ private fun BottomSheetContactDeveloper(
         ContactDeveloper(
             icon = R.drawable.tiktok,
             title = "TikTok",
-            description = "https://www.tiktok.com/@xliicxiv",
             actionIcon = Icons.Rounded.ArrowForward,
             onItemClick = {
                 intentApp(
-                    webUrl = "https://www.tiktok.com/@xliicxiv",
+                    webUrl = "https://www.tiktok.com/@xliiicxiv",
                     appPackage = "com.ss.android.ugc.trill",
                     context = context
                 )

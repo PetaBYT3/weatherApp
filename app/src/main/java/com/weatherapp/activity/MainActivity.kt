@@ -214,7 +214,6 @@ private fun ContentScreen(
                 .fillMaxWidth()
                 .animateContentSize()
         ) {
-            Text(text = uiState.test.toString())
             Row {
                 Card(
                     modifier = Modifier.clip(RoundedCornerShape(50)),
@@ -549,7 +548,7 @@ private fun ContentScreen(
                         verticalArrangement = Arrangement.Center,
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        TextContent("Cant get weather data because no location selected. Please enable GPS or select location from your list")
+                        TextContent("Choose Location Or Enable GPS First")
                     }
                 }
             }

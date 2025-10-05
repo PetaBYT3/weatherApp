@@ -20,6 +20,10 @@ import com.weatherapp.repository.SettingsRepository
 import com.weatherapp.repository.WeatherRepository
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
+import dagger.hilt.EntryPoint
+import dagger.hilt.InstallIn
+import dagger.hilt.android.EntryPointAccessors
+import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
@@ -28,32 +32,59 @@ import kotlinx.coroutines.flow.first
 class NotificationWorker @AssistedInject constructor(
     @Assisted private val appContext: Context,
     @Assisted workerParams: WorkerParameters,
-//    private val settingsRepository: SettingsRepository
 ): CoroutineWorker(appContext, workerParams) {
 
+    @EntryPoint
+    @InstallIn(SingletonComponent::class)
+    interface WorkerProviderEntryPoint {
+        fun weatherRepository(): WeatherRepository
+        fun settingsRepository(): SettingsRepository
+    }
+
     override suspend fun doWork(): Result {
-        return try {
-            Log.d("WorkerWeather", "Worker berjalan...")
+        val entryPoint = EntryPointAccessors.fromApplication(
+            appContext,
+            WorkerProviderEntryPoint::class.java
+        )
 
+        val temperatureFormat = entryPoint.settingsRepository().degree.first()
+        val lastLocation = entryPoint.settingsRepository().lastLocation.first()
+        val weatherResponse = entryPoint.weatherRepository().fetchWeatherData(lastLocation)
+
+        if (lastLocation.isNotBlank()) {
+            if (weatherResponse != null) {
+                when (temperatureFormat) {
+                    "Celcius" -> {
+                        showNotification(
+                            location = "${weatherResponse.location.region} | ${weatherResponse.location.name}",
+                            condition = weatherResponse.current.condition.text,
+                            temperature = "${weatherResponse.current.temp_c}°C",
+                        )
+                    }
+                    "Fahrenheit" -> {
+                        showNotification(
+                            location = "${weatherResponse.location.region} | ${weatherResponse.location.name}",
+                            condition = weatherResponse.current.condition.text,
+                            temperature = "${weatherResponse.current.temp_f}°F"
+                        )
+                    }
+
+                }
+            }
+        } else {
             showNotification(
-                locationNotif = "Jakarta",
-                conditionNotif = "Cerah Berawan",
-                temperatureCNotif = "25°C",
-                temperatureFNotif = "7"
+                location = "Cant Get Weather Data !",
+                condition = "Location not available. Choose location or enable GPS on app",
+                temperature = ""
             )
-            Result.success()
-
-        } catch (e: Exception) {
-            Log.d("WorkerWeather", "Worker gagal = {${e.message}}")
-            Result.failure()
         }
+        return Result.success()
     }
 
     private fun showNotification(
-        locationNotif: String,
-        conditionNotif: String,
-        temperatureCNotif: String,
-        temperatureFNotif: String,
+        location: String,
+        condition: String,
+        temperature: String,
     ) {
         val channelId = "notification_channel_id"
         val notificationId = 1
@@ -68,8 +99,8 @@ class NotificationWorker @AssistedInject constructor(
         notificationManager.createNotificationChannel(channel)
         val builder = NotificationCompat.Builder(appContext, channelId)
             .setSmallIcon(R.drawable.ic_launcher_foreground)
-            .setContentTitle(locationNotif)
-            .setContentText("$temperatureCNotif | $temperatureFNotif \n$conditionNotif")
+            .setContentTitle(location)
+            .setContentText("$temperature | $condition")
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
 
         with(NotificationManagerCompat.from(appContext)) {
