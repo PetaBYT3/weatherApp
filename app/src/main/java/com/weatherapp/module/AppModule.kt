@@ -23,37 +23,27 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object AppModule {
 
-// --- Resep untuk WeatherRepository ---
-
+    //API Provider
     @Provides
     @Singleton
-    fun provideRetrofit(): Retrofit { // 1. Ajari Hilt cara membuat Retrofit
+    fun provideRetrofit(): Retrofit {
         return Retrofit.Builder()
-            .baseUrl("https://api.weatherapi.com/v1/") // Ganti dengan URL base Anda
+            .baseUrl("https://api.weatherapi.com/v1/")
             .addConverterFactory(GsonConverterFactory.create())
             .build()
     }
-
     @Provides
     @Singleton
-    fun provideWeatherApiService(retrofit: Retrofit): WeatherApiService { // 2. Ajari cara membuat ApiService
+    fun provideWeatherApiService(retrofit: Retrofit): WeatherApiService {
         return retrofit.create(WeatherApiService::class.java)
     }
-
     @Provides
     @Singleton
     fun provideWeatherRepository(apiService: WeatherApiService): WeatherRepository { // 3. Sekarang Hilt tahu cara membuat WeatherRepository
         return WeatherRepository(apiService)
     }
 
-    // --- Resep untuk Settings & Location Repository ---
-
-    @Provides
-    @Singleton
-    fun provideSettingsRepository(dataStore: DataStore): SettingsRepository {
-        return SettingsRepository(dataStore)
-    }
-
+    //Location Provider
     @Provides
     @Singleton
     fun provideLocationRepository(
@@ -64,20 +54,23 @@ object AppModule {
         return LocationRepository(locationDao, dataStore, application)
     }
 
-    // --- Resep untuk Local Database ---
 
+    //Local Storage Provider
+    @Provides
+    @Singleton
+    fun provideSettingsRepository(dataStore: DataStore): SettingsRepository {
+        return SettingsRepository(dataStore)
+    }
     @Provides
     @Singleton
     fun provideDataStore(@ApplicationContext context: Context): DataStore {
         return DataStore(context)
     }
-
     @Provides
     @Singleton
     fun provideLocationDao(database: LocationDatabase): LocationDao {
         return database.locationDao()
     }
-
     @Provides
     @Singleton
     fun provideLocationDatabase(@ApplicationContext context: Context): LocationDatabase {
